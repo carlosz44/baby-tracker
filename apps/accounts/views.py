@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -46,6 +48,21 @@ def profile_view(request):
 
     context = {"form": form, "profile": profile}
     return render(request, "accounts/profile.html", context)
+
+
+def dev_login(request):
+    if not settings.DEBUG:
+        return redirect("account_login")
+
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        user = authenticate(request, username=email, password=password)
+        if user:
+            login(request, user)
+            return redirect("/")
+        messages.error(request, "Invalid email or password.")
+    return redirect("account_login")
 
 
 def forbidden(request):

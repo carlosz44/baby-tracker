@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-# Start Tailwind CSS watcher in the background
+# Build Tailwind CSS once, then start watcher in background
+tailwindcss -i static/css/input.css -o static/css/output.css
 tailwindcss -i static/css/input.css -o static/css/output.css --watch &
 
 # Run Django development server

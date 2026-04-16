@@ -1,0 +1,24 @@
+{% extends "account/base_auth.html" %}
+
+{% block title %}Sign Out — Baby Tracker{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-sm mx-4">
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 text-center">
+    <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Sign Out</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Are you sure you want to sign out?</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit"
+              class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
+        Sign Out
+      </button>
+    </form>
+
+    <a href="/" class="inline-block mt-4 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+      Go back
+    </a>
+  </div>
+</div>
+{% endblock %}
