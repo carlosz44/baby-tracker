@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments — Baby Tracker{% endblock %}
+{% block header %}Appointments{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex justify-end">
+    <a href="{% url 'appointment_create' %}"
+       class="inline-flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      New Appointment
+    </a>
+  </div>
+
+  {# Upcoming #}
+  <div>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Upcoming</h2>
+    {% if upcoming %}
+      <div class="space-y-3">
+        {% for appt in upcoming %}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</h3>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                {{ appt.get_appointment_type_display }}
+              </span>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              {{ appt.date|date:"l, M d, Y · h:i A" }}
+            </p>
+            {% if appt.doctor or appt.clinic %}
+            <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">
+              {% if appt.doctor %}{{ appt.doctor }}{% endif %}
+              {% if appt.doctor and appt.clinic %} · {% endif %}
+              {% if appt.clinic %}{{ appt.clinic }}{% endif %}
+            </p>
+            {% endif %}
+            {% if appt.pregnancy_week_at_appointment is not None %}
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Week {{ appt.pregnancy_week_at_appointment }}</p>
+            {% endif %}
+          </div>
+          <div class="flex gap-2 ml-4 shrink-0">
+            <a href="{% url 'appointment_edit' appt.pk %}" class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </a>
+            <a href="{% url 'appointment_delete' appt.pk %}" class="text-slate-400 hover:text-red-500">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-slate-400 dark:text-slate-500">No upcoming appointments.</p>
+    {% endif %}
+  </div>
+
+  {# Past #}
+  {% if past %}
+  <div>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Past</h2>
+    <div class="space-y-3 opacity-75">
+      {% for appt in past %}
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</h3>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+              {{ appt.get_appointment_type_display }}
+            </span>
+          </div>
+          <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"M d, Y · h:i A" }}</p>
+        </div>
+        <div class="flex gap-2 ml-4 shrink-0">
+          <a href="{% url 'appointment_edit' appt.pk %}" class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

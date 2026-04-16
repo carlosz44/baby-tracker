@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Baby Tracker{% endblock %}
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# Pregnancy overview cards #}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Current Week</p>
+      <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
+        {% if profile.pregnancy_week is not None %}
+          {{ profile.pregnancy_week }}
+        {% else %}
+          —
+        {% endif %}
+      </p>
+      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">weeks pregnant</p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Days Until Due Date</p>
+      <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
+        {% if profile.days_remaining is not None %}
+          {{ profile.days_remaining }}
+        {% else %}
+          —
+        {% endif %}
+      </p>
+      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+        {% if profile.estimated_delivery_date %}
+          {{ profile.estimated_delivery_date|date:"M d, Y" }}
+        {% else %}
+          Set your due date in profile
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Last Log</p>
+      {% if last_log %}
+        <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">Week {{ last_log.week_number }}</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ last_log.weight_kg }} kg · {{ last_log.get_mood_display }}</p>
+      {% else %}
+        <p class="text-lg text-slate-400 dark:text-slate-500 mt-2">No logs yet</p>
+        <a href="/baby/logs/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Add your first log</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Upcoming appointments #}
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Upcoming Appointments</h2>
+      <a href="/appointments/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ New</a>
+    </div>
+    {% if upcoming_appointments %}
+      <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for appt in upcoming_appointments %}
+        <li class="px-5 py-3 flex items-center justify-between">
+          <div>
+            <p class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"M d, Y · h:i A" }}{% if appt.doctor %} · {{ appt.doctor }}{% endif %}</p>
+          </div>
+          <span class="text-xs px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
+            {{ appt.get_appointment_type_display }}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No upcoming appointments.</p>
+    {% endif %}
+  </div>
+
+  {# Recent files #}
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Recent Files</h2>
+      <a href="/files/upload/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Upload</a>
+    </div>
+    {% if recent_files %}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5">
+        {% for file in recent_files %}
+        <div class="text-center">
+          {% if file.is_image %}
+            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden">
+              <img src="{{ file.file.url }}" alt="{{ file.title }}" class="w-full h-full object-cover">
+            </div>
+          {% else %}
+            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+              <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+          {% endif %}
+          <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 truncate">{{ file.title }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No files uploaded yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Kick Counter — Baby Tracker{% endblock %}
+{% block header %}Kick Counter{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto space-y-6">
+  {# Log form #}
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+    <h2 class="font-semibold text-slate-800 dark:text-slate-100 mb-4">Log a Kick Session</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="space-y-4">
+        {% for field in form %}
+        <div>
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ field.errors.0 }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit"
+                class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Recent kicks #}
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <h2 class="font-semibold text-slate-800 dark:text-slate-100 p-5 border-b border-slate-200 dark:border-slate-700">Last 7 Days</h2>
+    {% if recent_kicks %}
+      <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for kick in recent_kicks %}
+        <li class="px-5 py-3 flex items-center justify-between">
+          <div>
+            <p class="font-medium text-slate-700 dark:text-slate-200">{{ kick.count }} kicks</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ kick.date|date:"l, M d" }}{% if kick.duration_minutes %} · {{ kick.duration_minutes }} min{% endif %}</p>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No kicks logged in the last 7 days.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

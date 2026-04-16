@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Baby Tracker{% endblock %}
+{% block header %}Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+    <div class="mb-6">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Signed in as</p>
+      <p class="font-medium text-slate-800 dark:text-slate-100">{{ request.user.email }}</p>
+    </div>
+
+    {% if profile.partner %}
+    <div class="mb-6 p-4 bg-rose-50 dark:bg-rose-500/10 rounded-lg">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Partner</p>
+      <p class="font-medium text-slate-700 dark:text-slate-200">{{ profile.partner.email }}</p>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="space-y-4">
+        <div>
+          <label for="id_due_date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Last Menstrual Period Date (FUR/LMP)
+          </label>
+          {{ form.due_date }}
+          {% if form.due_date.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.due_date.errors.0 }}</p>
+          {% endif %}
+          <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">This is used to calculate your pregnancy week and estimated due date.</p>
+        </div>
+
+        {% if profile.estimated_delivery_date %}
+        <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <p class="text-sm text-slate-500 dark:text-slate-400">Estimated delivery date</p>
+          <p class="font-medium text-slate-700 dark:text-slate-200">{{ profile.estimated_delivery_date|date:"F d, Y" }}</p>
+        </div>
+        {% endif %}
+
+        <button type="submit"
+                class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
+          Save Profile
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary-light: theme("colors.rose.400");
+    --color-primary: theme("colors.rose.500");
+    --color-primary-dark: theme("colors.rose.600");
+  }
+}

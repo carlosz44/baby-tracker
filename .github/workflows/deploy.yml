@@ -1,0 +1,74 @@
+name: CI/CD Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: babytracker_test
+          POSTGRES_USER: baby
+          POSTGRES_PASSWORD: baby
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U baby -d babytracker_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: test-secret-key-not-for-production
+      DEBUG: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      ALLOWED_LOGIN_EMAILS: test@example.com
+      DATABASE_URL: postgres://baby:baby@localhost:5432/babytracker_test
+      DJANGO_SETTINGS_MODULE: config.settings.local
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: requirements/local.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/local.txt
+
+      - name: Run tests
+        run: pytest
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/baby-tracker
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements/production.txt --quiet
+            if [ ! -f /usr/local/bin/tailwindcss ]; then
+              curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+              chmod +x tailwindcss-linux-x64
+              sudo mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
+            fi
+            tailwindcss -i static/css/input.css -o static/css/output.css --minify
+            python manage.py migrate --no-input
+            python manage.py collectstatic --no-input
+            sudo systemctl restart gunicorn-baby

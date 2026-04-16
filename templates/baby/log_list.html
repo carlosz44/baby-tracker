@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Logs — Baby Tracker{% endblock %}
+{% block header %}Weekly Logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex justify-end">
+    <a href="{% url 'weekly_log_create' %}"
+       class="inline-flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      New Log
+    </a>
+  </div>
+
+  {% if logs %}
+    <div class="space-y-3">
+      {% for log in logs %}
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="font-medium text-slate-700 dark:text-slate-200">Week {{ log.week_number }}</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ log.date|date:"M d, Y" }}</p>
+          </div>
+          <span class="text-xs px-2 py-1 rounded-full
+            {% if log.mood == 'great' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+            {% elif log.mood == 'good' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+            {% elif log.mood == 'ok' %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
+            {% elif log.mood == 'bad' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
+            {% else %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400{% endif %}">
+            {{ log.get_mood_display }}
+          </span>
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
+          <span>{{ log.weight_kg }} kg</span>
+          {% if log.blood_pressure_systolic and log.blood_pressure_diastolic %}
+            <span>BP: {{ log.blood_pressure_systolic }}/{{ log.blood_pressure_diastolic }}</span>
+          {% endif %}
+        </div>
+
+        {% if log.symptoms %}
+          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ log.symptoms|truncatewords:20 }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-12">
+      <p class="text-slate-400 dark:text-slate-500 mb-2">No logs yet.</p>
+      <a href="{% url 'weekly_log_create' %}" class="text-rose-500 dark:text-rose-400 hover:underline text-sm">Create your first weekly log</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
