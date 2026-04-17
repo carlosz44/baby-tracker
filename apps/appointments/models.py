@@ -3,11 +3,11 @@ from django.db import models
 
 class Appointment(models.Model):
     APPOINTMENT_TYPES = [
-        ("obstetric", "Obstetric"),
-        ("ultrasound", "Ultrasound"),
-        ("lab", "Lab Work"),
-        ("nutrition", "Nutrition"),
-        ("other", "Other"),
+        ("obstetric", "Obstétrica"),
+        ("ultrasound", "Ecografía"),
+        ("lab", "Análisis"),
+        ("nutrition", "Nutrición"),
+        ("other", "Otro"),
     ]
 
     title = models.CharField(max_length=200)
@@ -16,7 +16,7 @@ class Appointment(models.Model):
     doctor = models.CharField(max_length=200, blank=True)
     clinic = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)
-    google_calendar_event_id = models.CharField(max_length=255, blank=True)
+    google_calendar_event_ids = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-date"]

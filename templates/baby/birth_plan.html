@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Birth Plan — Baby Tracker{% endblock %}
-{% block header %}Birth Plan{% endblock %}
+{% block title %}Plan de Parto — Baby Tracker{% endblock %}
+{% block header %}Plan de Parto{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
   <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
     {% if plan.updated_at %}
-    <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">Last updated: {{ plan.updated_at|date:"M d, Y · h:i A" }}</p>
+    <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">Última actualización: {{ plan.updated_at|date:"d M Y · H:i" }}</p>
     {% endif %}
 
     <form method="post">
@@ -15,20 +15,20 @@
       <div class="space-y-4">
         <div>
           <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Your Birth Plan
+            Tu Plan de Parto
           </label>
           {{ form.content }}
           {% if form.content.errors %}
             <p class="text-sm text-red-500 mt-1">{{ form.content.errors.0 }}</p>
           {% endif %}
           <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            Write down your preferences for labor and delivery — pain management, positions, who you want present, etc.
+            Anota tus preferencias para el trabajo de parto y el nacimiento — manejo del dolor, posiciones, quién quieres que esté presente, etc.
           </p>
         </div>
 
         <button type="submit"
                 class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
-          Save Birth Plan
+          Guardar Plan de Parto
         </button>
       </div>
     </form>

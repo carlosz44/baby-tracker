@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Files — Baby Tracker{% endblock %}
-{% block header %}Files{% endblock %}
+{% block title %}Archivos — Baby Tracker{% endblock %}
+{% block header %}Archivos{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -9,7 +9,7 @@
     <a href="{% url 'file_upload' %}"
        class="inline-flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-      Upload
+      Subir
     </a>
   </div>
 
@@ -33,7 +33,7 @@
             {% endif %}
             <div class="p-3">
               <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{{ file.title }}</p>
-              <p class="text-xs text-slate-400 dark:text-slate-500">{{ file.uploaded_at|date:"M d, Y" }}</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500">{{ file.uploaded_at|date:"d M Y" }}</p>
             </div>
           </div>
         </a>
@@ -43,8 +43,8 @@
     {% endfor %}
   {% else %}
     <div class="text-center py-12">
-      <p class="text-slate-400 dark:text-slate-500 mb-2">No files uploaded yet.</p>
-      <a href="{% url 'file_upload' %}" class="text-rose-500 dark:text-rose-400 hover:underline text-sm">Upload your first file</a>
+      <p class="text-slate-400 dark:text-slate-500 mb-2">No hay archivos subidos.</p>
+      <a href="{% url 'file_upload' %}" class="text-rose-500 dark:text-rose-400 hover:underline text-sm">Sube tu primer archivo</a>
     </div>
   {% endif %}
 </div>

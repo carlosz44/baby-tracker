@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard — Baby Tracker{% endblock %}
-{% block header %}Dashboard{% endblock %}
+{% block title %}Inicio — Baby Tracker{% endblock %}
+{% block header %}Inicio{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -9,7 +9,7 @@
   {# Pregnancy overview cards #}
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Current Week</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Semana Actual</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
         {% if profile.pregnancy_week is not None %}
           {{ profile.pregnancy_week }}
@@ -17,11 +17,11 @@
           —
         {% endif %}
       </p>
-      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">weeks pregnant</p>
+      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">semanas de embarazo</p>
     </div>
 
     <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Days Until Due Date</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Días para la Fecha Probable</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
         {% if profile.days_remaining is not None %}
           {{ profile.days_remaining }}
@@ -31,21 +31,21 @@
       </p>
       <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
         {% if profile.estimated_delivery_date %}
-          {{ profile.estimated_delivery_date|date:"M d, Y" }}
+          {{ profile.estimated_delivery_date|date:"d M Y" }}
         {% else %}
-          Set your due date in profile
+          Configura la fecha en tu perfil
         {% endif %}
       </p>
     </div>
 
     <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Last Log</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Último Registro</p>
       {% if last_log %}
-        <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">Week {{ last_log.week_number }}</p>
+        <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">Semana {{ last_log.week_number }}</p>
         <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ last_log.weight_kg }} kg · {{ last_log.get_mood_display }}</p>
       {% else %}
-        <p class="text-lg text-slate-400 dark:text-slate-500 mt-2">No logs yet</p>
-        <a href="/baby/logs/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Add your first log</a>
+        <p class="text-lg text-slate-400 dark:text-slate-500 mt-2">Sin registros todavía</p>
+        <a href="/baby/logs/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Añade tu primer registro</a>
       {% endif %}
     </div>
   </div>
@@ -53,8 +53,8 @@
   {# Upcoming appointments #}
   <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
     <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Upcoming Appointments</h2>
-      <a href="/appointments/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ New</a>
+      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Próximas Citas</h2>
+      <a href="/appointments/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Nueva</a>
     </div>
     {% if upcoming_appointments %}
       <ul class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -62,7 +62,7 @@
         <li class="px-5 py-3 flex items-center justify-between">
           <div>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</p>
-            <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"M d, Y · h:i A" }}{% if appt.doctor %} · {{ appt.doctor }}{% endif %}</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"d M Y · H:i" }}{% if appt.doctor %} · {{ appt.doctor }}{% endif %}</p>
           </div>
           <span class="text-xs px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
             {{ appt.get_appointment_type_display }}
@@ -71,15 +71,15 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No upcoming appointments.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No hay citas próximas.</p>
     {% endif %}
   </div>
 
   {# Recent files #}
   <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
     <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Recent Files</h2>
-      <a href="/files/upload/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Upload</a>
+      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Archivos Recientes</h2>
+      <a href="/files/upload/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Subir</a>
     </div>
     {% if recent_files %}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5">
@@ -99,7 +99,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No files uploaded yet.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No hay archivos subidos.</p>
     {% endif %}
   </div>
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Appointments — Baby Tracker{% endblock %}
-{% block header %}Appointments{% endblock %}
+{% block title %}Citas — Baby Tracker{% endblock %}
+{% block header %}Citas{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -9,13 +9,13 @@
     <a href="{% url 'appointment_create' %}"
        class="inline-flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      New Appointment
+      Nueva Cita
     </a>
   </div>
 
-  {# Upcoming #}
+  {# Próximas #}
   <div>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Upcoming</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Próximas</h2>
     {% if upcoming %}
       <div class="space-y-3">
         {% for appt in upcoming %}
@@ -28,7 +28,7 @@
               </span>
             </div>
             <p class="text-sm text-slate-500 dark:text-slate-400">
-              {{ appt.date|date:"l, M d, Y · h:i A" }}
+              {{ appt.date|date:"l, d M Y · H:i" }}
             </p>
             {% if appt.doctor or appt.clinic %}
             <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">
@@ -38,7 +38,7 @@
             </p>
             {% endif %}
             {% if appt.pregnancy_week_at_appointment is not None %}
-            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Week {{ appt.pregnancy_week_at_appointment }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Semana {{ appt.pregnancy_week_at_appointment }}</p>
             {% endif %}
           </div>
           <div class="flex gap-2 ml-4 shrink-0">
@@ -53,14 +53,14 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-sm text-slate-400 dark:text-slate-500">No upcoming appointments.</p>
+      <p class="text-sm text-slate-400 dark:text-slate-500">No hay citas próximas.</p>
     {% endif %}
   </div>
 
-  {# Past #}
+  {# Pasadas #}
   {% if past %}
   <div>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Past</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Pasadas</h2>
     <div class="space-y-3 opacity-75">
       {% for appt in past %}
       <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex items-start justify-between">
@@ -71,7 +71,7 @@
               {{ appt.get_appointment_type_display }}
             </span>
           </div>
-          <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"M d, Y · h:i A" }}</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"d M Y · H:i" }}</p>
         </div>
         <div class="flex gap-2 ml-4 shrink-0">
           <a href="{% url 'appointment_edit' appt.pk %}" class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400">

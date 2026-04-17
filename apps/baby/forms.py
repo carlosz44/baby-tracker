@@ -21,11 +21,20 @@ class WeeklyLogForm(forms.ModelForm):
             "mood",
             "notes",
         ]
+        labels = {
+            "week_number": "Semana",
+            "weight_kg": "Peso (kg)",
+            "blood_pressure_systolic": "Presión sistólica",
+            "blood_pressure_diastolic": "Presión diastólica",
+            "symptoms": "Síntomas",
+            "mood": "Estado de ánimo",
+            "notes": "Notas",
+        }
         widgets = {
             "week_number": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
             "weight_kg": forms.NumberInput(attrs={"class": INPUT_CLASSES, "step": "0.1"}),
-            "blood_pressure_systolic": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Systolic"}),
-            "blood_pressure_diastolic": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Diastolic"}),
+            "blood_pressure_systolic": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Sistólica"}),
+            "blood_pressure_diastolic": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Diastólica"}),
             "symptoms": forms.Textarea(attrs={"class": INPUT_CLASSES, "rows": 3}),
             "mood": forms.Select(attrs={"class": INPUT_CLASSES}),
             "notes": forms.Textarea(attrs={"class": INPUT_CLASSES, "rows": 3}),
@@ -36,10 +45,16 @@ class KickCountForm(forms.ModelForm):
     class Meta:
         model = KickCount
         fields = ["date", "count", "duration_minutes", "notes"]
+        labels = {
+            "date": "Fecha",
+            "count": "Número de pataditas",
+            "duration_minutes": "Duración (minutos)",
+            "notes": "Notas",
+        }
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date", "class": INPUT_CLASSES}),
+            "date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date", "class": INPUT_CLASSES}),
             "count": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
-            "duration_minutes": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Minutes"}),
+            "duration_minutes": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Minutos"}),
             "notes": forms.Textarea(attrs={"class": INPUT_CLASSES, "rows": 2}),
         }
 
@@ -53,7 +68,7 @@ class BirthPlanForm(forms.ModelForm):
                 attrs={
                     "class": INPUT_CLASSES,
                     "rows": 20,
-                    "placeholder": "Write your birth plan here...",
+                    "placeholder": "Escribe aquí tu plan de parto...",
                 }
             ),
         }

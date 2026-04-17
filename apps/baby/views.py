@@ -30,7 +30,7 @@ def weekly_log_create(request):
             log = form.save(commit=False)
             log.logged_by = request.user
             log.save()
-            messages.success(request, "Weekly log saved.")
+            messages.success(request, "Registro semanal guardado.")
             return redirect("weekly_log_list")
     else:
         form = WeeklyLogForm(initial=initial)
@@ -49,7 +49,7 @@ def kick_counter(request):
             kick = form.save(commit=False)
             kick.logged_by = request.user
             kick.save()
-            messages.success(request, "Kick count logged.")
+            messages.success(request, "Pataditas registradas.")
             return redirect("kick_counter")
     else:
         form = KickCountForm(initial={"date": timezone.now().date()})
@@ -68,7 +68,7 @@ def birth_plan(request):
         form = BirthPlanForm(request.POST, instance=plan)
         if form.is_valid():
             form.save()
-            messages.success(request, "Birth plan saved.")
+            messages.success(request, "Plan de parto guardado.")
             return redirect("birth_plan")
     else:
         form = BirthPlanForm(instance=plan)

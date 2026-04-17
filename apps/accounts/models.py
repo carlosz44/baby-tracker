@@ -22,13 +22,6 @@ class Profile(models.Model):
         null=True,
         blank=True,
     )
-    partner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="partner_of",
-    )
 
     @property
     def pregnancy_week(self):

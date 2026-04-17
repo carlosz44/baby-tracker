@@ -5,11 +5,11 @@ from django.db import models
 
 class PregnancyFile(models.Model):
     CATEGORIES = [
-        ("ultrasound", "Ultrasound"),
-        ("lab_result", "Lab Result"),
-        ("prescription", "Prescription"),
-        ("belly_photo", "Belly Photo"),
-        ("other", "Other"),
+        ("ultrasound", "Ecografía"),
+        ("lab_result", "Análisis"),
+        ("prescription", "Receta"),
+        ("belly_photo", "Foto de barriga"),
+        ("other", "Otro"),
     ]
 
     file = models.FileField(

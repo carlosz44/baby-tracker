@@ -4,11 +4,11 @@ from django.db import models
 
 class WeeklyLog(models.Model):
     MOOD_CHOICES = [
-        ("great", "Great"),
-        ("good", "Good"),
-        ("ok", "OK"),
-        ("bad", "Bad"),
-        ("terrible", "Terrible"),
+        ("great", "Excelente"),
+        ("good", "Bien"),
+        ("ok", "Regular"),
+        ("bad", "Mal"),
+        ("terrible", "Muy mal"),
     ]
 
     week_number = models.PositiveSmallIntegerField()

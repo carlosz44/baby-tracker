@@ -13,10 +13,19 @@ class AppointmentForm(forms.ModelForm):
     class Meta:
         model = Appointment
         fields = ["title", "appointment_type", "date", "doctor", "clinic", "notes"]
+        labels = {
+            "title": "Título",
+            "appointment_type": "Tipo de cita",
+            "date": "Fecha y hora",
+            "doctor": "Doctor/a",
+            "clinic": "Clínica",
+            "notes": "Notas",
+        }
         widgets = {
             "title": forms.TextInput(attrs={"class": INPUT_CLASSES}),
             "appointment_type": forms.Select(attrs={"class": INPUT_CLASSES}),
             "date": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
                 attrs={"type": "datetime-local", "class": INPUT_CLASSES}
             ),
             "doctor": forms.TextInput(attrs={"class": INPUT_CLASSES}),

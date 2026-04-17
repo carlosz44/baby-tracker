@@ -10,36 +10,19 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Appointment)
 def sync_calendar_on_save(sender, instance, **kwargs):
-    if instance.google_calendar_event_id:
-        return
-
     try:
-        from apps.accounts.models import User
+        from .calendar_service import sync_appointment
 
-        from .calendar_service import create_event
-
-        users = User.objects.all()[:2]
-        event_id = create_event(instance, users)
-        if event_id:
-            Appointment.objects.filter(pk=instance.pk).update(
-                google_calendar_event_id=event_id
-            )
+        sync_appointment(instance)
     except Exception:
-        logger.exception("Failed to create Google Calendar event for appointment %s", instance.pk)
+        logger.exception("Failed to sync Google Calendar for appointment %s", instance.pk)
 
 
 @receiver(post_delete, sender=Appointment)
 def sync_calendar_on_delete(sender, instance, **kwargs):
-    if not instance.google_calendar_event_id:
-        return
-
     try:
-        from apps.accounts.models import User
+        from .calendar_service import delete_appointment_events
 
-        from .calendar_service import delete_event
-
-        user = User.objects.first()
-        if user:
-            delete_event(user, instance.google_calendar_event_id)
+        delete_appointment_events(instance)
     except Exception:
-        logger.exception("Failed to delete Google Calendar event %s", instance.google_calendar_event_id)
+        logger.exception("Failed to delete Google Calendar events for appointment %s", instance.pk)

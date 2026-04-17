@@ -25,7 +25,7 @@ def file_upload(request):
             pregnancy_file = form.save(commit=False)
             pregnancy_file.uploaded_by = request.user
             pregnancy_file.save()
-            messages.success(request, "File uploaded successfully.")
+            messages.success(request, "Archivo subido correctamente.")
             return redirect("file_list")
     else:
         form = PregnancyFileForm()

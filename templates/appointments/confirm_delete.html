@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Delete Appointment — Baby Tracker{% endblock %}
-{% block header %}Delete Appointment{% endblock %}
+{% block title %}Eliminar Cita — Baby Tracker{% endblock %}
+{% block header %}Eliminar Cita{% endblock %}
 
 {% block content %}
 <div class="max-w-lg mx-auto">
   <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 text-center">
     <p class="text-4xl mb-4">⚠️</p>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Delete "{{ appointment.title }}"?</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">¿Eliminar "{{ appointment.title }}"?</h2>
     <p class="text-slate-500 dark:text-slate-400 mb-6">
-      {{ appointment.date|date:"M d, Y · h:i A" }}<br>
-      This action cannot be undone.
+      {{ appointment.date|date:"d M Y · H:i" }}<br>
+      Esta acción no se puede deshacer.
     </p>
     <form method="post" class="flex gap-3 justify-center">
       {% csrf_token %}
       <button type="submit"
               class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg transition">
-        Delete
+        Eliminar
       </button>
       <a href="{% url 'appointment_list' %}"
          class="border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium py-2 px-6 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-        Cancel
+        Cancelar
       </a>
     </form>
   </div>

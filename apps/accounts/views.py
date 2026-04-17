@@ -10,7 +10,7 @@ from apps.baby.models import WeeklyLog
 from apps.files.models import PregnancyFile
 
 from .forms import ProfileForm
-from .models import Profile
+from .models import Profile, User
 
 
 @login_required
@@ -41,12 +41,13 @@ def profile_view(request):
         form = ProfileForm(request.POST, instance=profile)
         if form.is_valid():
             form.save()
-            messages.success(request, "Profile updated successfully.")
+            messages.success(request, "Perfil actualizado correctamente.")
             return redirect("profile")
     else:
         form = ProfileForm(instance=profile)
 
-    context = {"form": form, "profile": profile}
+    partner = User.objects.exclude(pk=request.user.pk).first()
+    context = {"form": form, "profile": profile, "partner": partner}
     return render(request, "accounts/profile.html", context)
 
 
@@ -61,7 +62,7 @@ def dev_login(request):
         if user:
             login(request, user)
             return redirect("/")
-        messages.error(request, "Invalid email or password.")
+        messages.error(request, "Correo o contraseña incorrectos.")
     return redirect("account_login")
 
 

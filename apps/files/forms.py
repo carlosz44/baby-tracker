@@ -13,6 +13,13 @@ class PregnancyFileForm(forms.ModelForm):
     class Meta:
         model = PregnancyFile
         fields = ["file", "category", "title", "notes", "appointment"]
+        labels = {
+            "file": "Archivo",
+            "category": "Categoría",
+            "title": "Título",
+            "notes": "Notas",
+            "appointment": "Cita relacionada",
+        }
         widgets = {
             "file": forms.ClearableFileInput(
                 attrs={

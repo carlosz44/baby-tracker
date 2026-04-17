@@ -22,7 +22,7 @@ def appointment_create(request):
         form = AppointmentForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Appointment created.")
+            messages.success(request, "Cita creada.")
             return redirect("appointment_list")
     else:
         form = AppointmentForm()
@@ -36,7 +36,7 @@ def appointment_edit(request, pk):
         form = AppointmentForm(request.POST, instance=appointment)
         if form.is_valid():
             form.save()
-            messages.success(request, "Appointment updated.")
+            messages.success(request, "Cita actualizada.")
             return redirect("appointment_list")
     else:
         form = AppointmentForm(instance=appointment)
@@ -48,6 +48,6 @@ def appointment_delete(request, pk):
     appointment = get_object_or_404(Appointment, pk=pk)
     if request.method == "POST":
         appointment.delete()
-        messages.success(request, "Appointment deleted.")
+        messages.success(request, "Cita eliminada.")
         return redirect("appointment_list")
     return render(request, "appointments/confirm_delete.html", {"appointment": appointment})

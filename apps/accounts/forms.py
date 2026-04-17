@@ -7,8 +7,10 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ["due_date"]
+        labels = {"due_date": "Fecha de la última menstruación (FUR)"}
         widgets = {
             "due_date": forms.DateInput(
+                format="%Y-%m-%d",
                 attrs={
                     "type": "date",
                     "class": (
