@@ -65,3 +65,7 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 ## CI/CD
 
 GitHub Actions (`.github/workflows/deploy.yml`): pushes to `main` run pytest with a Postgres service container, then SSH-deploy to VPS (pull, pip install, tailwind build, migrate, collectstatic, restart gunicorn).
+
+`scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: installs Python/Postgres/Nginx/Certbot/Tailwind CLI, creates the `deploy` user with `NOPASSWD` sudo scoped to `systemctl restart gunicorn-baby`, sets up the DB, clones the repo, writes `.env`, runs migrations + collectstatic, installs the `gunicorn-baby` systemd unit, configures Nginx, issues a Let's Encrypt cert, and enables UFW. Idempotent — safe to re-run.
+
+Config is loaded with precedence `shell env > scripts/bootstrap.env > scripts/bootstrap.env.example`. Copy `scripts/bootstrap.env.example` to `scripts/bootstrap.env` (gitignored) and fill it in, or pass values as env vars. `REPO_URL` auto-detects from the checked-out repo's `origin` remote. Missing required values are prompted interactively. Invoke as root: `sudo -E bash scripts/bootstrap-vps.sh`.

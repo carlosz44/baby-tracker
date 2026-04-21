@@ -15,6 +15,7 @@ venv/
 # Environment variables
 .env
 .env.local
+scripts/bootstrap.env
 
 # Django
 db.sqlite3
