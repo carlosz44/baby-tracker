@@ -1,6 +1,7 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from apps.accounts.models import Profile
 
@@ -9,7 +10,7 @@ from apps.accounts.models import Profile
 def test_profile_pregnancy_week(user):
     profile = Profile.objects.create(
         user=user,
-        due_date=date.today() - timedelta(weeks=12),
+        due_date=timezone.localdate() - timedelta(weeks=12),
     )
     assert profile.pregnancy_week == 12
 
@@ -18,7 +19,7 @@ def test_profile_pregnancy_week(user):
 def test_profile_days_remaining(user):
     profile = Profile.objects.create(
         user=user,
-        due_date=date.today(),
+        due_date=timezone.localdate(),
     )
     assert profile.days_remaining == 280
 

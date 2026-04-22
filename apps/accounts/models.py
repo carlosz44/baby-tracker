@@ -27,7 +27,7 @@ class Profile(models.Model):
     def pregnancy_week(self):
         if not self.due_date:
             return None
-        delta = timezone.now().date() - self.due_date
+        delta = timezone.localdate() - self.due_date
         return delta.days // 7
 
     @property
@@ -35,7 +35,7 @@ class Profile(models.Model):
         if not self.due_date:
             return None
         estimated_delivery = self.due_date + timedelta(days=280)
-        return (estimated_delivery - timezone.now().date()).days
+        return (estimated_delivery - timezone.localdate()).days
 
     @property
     def estimated_delivery_date(self):

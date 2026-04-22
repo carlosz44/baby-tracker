@@ -40,7 +40,7 @@ def weekly_log_create(request):
 
 @login_required
 def kick_counter(request):
-    seven_days_ago = timezone.now().date() - timedelta(days=7)
+    seven_days_ago = timezone.localdate() - timedelta(days=7)
     recent_kicks = KickCount.objects.filter(date__gte=seven_days_ago)
 
     if request.method == "POST":
@@ -52,7 +52,7 @@ def kick_counter(request):
             messages.success(request, "Pataditas registradas.")
             return redirect("kick_counter")
     else:
-        form = KickCountForm(initial={"date": timezone.now().date()})
+        form = KickCountForm(initial={"date": timezone.localdate()})
 
     return render(request, "baby/kick_counter.html", {"form": form, "recent_kicks": recent_kicks})
 
