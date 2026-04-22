@@ -31,8 +31,11 @@ load_env_file() {
     key="${key// /}"
     value="${value%\"}"; value="${value#\"}"
     value="${value%\'}"; value="${value#\'}"
-    [ -z "${!key:-}" ] && export "$key=$value"
+    if [ -z "${!key:-}" ]; then
+      export "$key=$value"
+    fi
   done < "$file"
+  return 0
 }
 
 load_env_file "$SCRIPT_DIR/bootstrap.env"
