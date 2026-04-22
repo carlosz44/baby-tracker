@@ -124,111 +124,37 @@ docker compose exec web pytest
 
 ## Production Deployment
 
-### Server Setup
+### One-shot VPS provisioning
 
-On your VPS (Ubuntu/Debian):
-
-```bash
-# Create project directory
-sudo mkdir -p /var/www/baby-tracker
-sudo chown $USER:$USER /var/www/baby-tracker
-
-# Clone repo and set up venv
-cd /var/www/baby-tracker
-git clone <your-repo-url> .
-python3.13 -m venv venv
-source venv/bin/activate
-pip install -r requirements/production.txt
-
-# Install Tailwind CLI
-curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
-chmod +x tailwindcss-linux-x64
-sudo mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
-
-# Build CSS, migrate, collect static
-cp .env.example .env  # Edit with production values
-tailwindcss -i static/css/input.css -o static/css/output.css --minify
-python manage.py migrate
-python manage.py collectstatic --no-input
-```
-
-### Gunicorn systemd Service
-
-Create `/etc/systemd/system/gunicorn-baby.service`:
-
-```ini
-[Unit]
-Description=Baby Tracker Gunicorn
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/baby-tracker
-ExecStart=/var/www/baby-tracker/venv/bin/gunicorn config.wsgi:application \
-    --bind unix:/var/www/baby-tracker/gunicorn.sock \
-    --workers 3 \
-    --timeout 120
-EnvironmentFile=/var/www/baby-tracker/.env
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
+`scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: apt packages, Postgres, Nginx, systemd, Certbot, UFW, the `deploy` user with narrowly-scoped `NOPASSWD` sudo, the `.env` file, migrations, and the `gunicorn-baby` service. It's idempotent — safe to re-run.
 
 ```bash
-sudo systemctl enable gunicorn-baby
-sudo systemctl start gunicorn-baby
+# On the VPS, after cloning the repo to /tmp:
+cd /tmp/baby-tracker
+cp scripts/bootstrap.env.example scripts/bootstrap.env
+$EDITOR scripts/bootstrap.env      # fill in DOMAIN, EMAIL, OAuth, R2, etc.
+sudo -E bash scripts/bootstrap-vps.sh
 ```
 
-### Nginx Configuration
+Values not set in `scripts/bootstrap.env` are prompted for interactively. See `scripts/bootstrap.env.example` for the full list (`DOMAIN`, `EMAIL`, `ALLOWED_EMAILS`, `GOOGLE_CLIENT_ID/SECRET`, `R2_ACCESS_KEY/SECRET/ENDPOINT`, plus optional overrides).
 
-Create `/etc/nginx/sites-available/baby-tracker`:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    location /static/ {
-        alias /var/www/baby-tracker/staticfiles/;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location / {
-        proxy_pass http://unix:/var/www/baby-tracker/gunicorn.sock;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        client_max_body_size 20M;
-    }
-}
-```
-
-```bash
-sudo ln -s /etc/nginx/sites-available/baby-tracker /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-### SSL with Certbot
-
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
-```
+Heads-up for tiny VPSes (≤1GB RAM): add a swap file before running bootstrap, otherwise the kernel OOM-kills processes. `fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile`, then add `/swapfile none swap sw 0 0` to `/etc/fstab`.
 
 ### GitHub Actions CI/CD
 
-The project includes `.github/workflows/deploy.yml` which:
-1. Runs tests on push to `main`
-2. SSHs into the VPS to pull, install deps, build CSS, migrate, and restart Gunicorn
+`.github/workflows/deploy.yml`:
+1. On push to `main`, runs `pytest` against a Postgres service container.
+2. On success, downloads the Tailwind CLI on the GitHub runner, builds `output.css --minify`, and `scp`s it to the VPS (Tailwind can't build on a 1GB VPS without OOM).
+3. SSHes in, `git pull`, sources `.env` (so `DJANGO_SETTINGS_MODULE=production`), `pip install`, `migrate`, `touch` + `collectstatic --clear --ignore="input.css"`, restart gunicorn.
 
 Required GitHub Secrets:
 - `VPS_HOST` — Server IP or hostname
-- `VPS_USER` — SSH username
-- `VPS_SSH_KEY` — Private SSH key
+- `VPS_USER` — SSH username (`deploy`)
+- `VPS_SSH_KEY` — Private SSH key for the deploy user
+
+### Static file caching
+
+Production uses `ManifestStaticFilesStorage`: `collectstatic` renames files to `output.a1b2c3d4.css` based on content hash, with Nginx serving `/static/` as `immutable` for 30 days. Cache-busting is automatic on every CSS change — no hard-reloads needed. `input.css` is excluded from collectstatic via `--ignore="input.css"` because it's the Tailwind source, not a runtime asset.
 
 ### Cloudflare R2 Setup (Production Storage)
 

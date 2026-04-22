@@ -50,8 +50,8 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 ### Frontend
 
 - Templates in `templates/` (not per-app). `base.html` has sidebar nav (desktop) + bottom nav (mobile).
-- Tailwind CSS via standalone CLI (no Node.js). Source: `static/css/input.css`, output: `static/css/output.css` (gitignored). Config scans `templates/**/*.html` and `apps/**/*.py`.
-- Dark mode via `class` strategy with `localStorage` persistence.
+- Tailwind CSS v4 via standalone CLI (no Node.js). Source: `static/css/input.css`, output: `static/css/output.css` (gitignored). `input.css` contains `@import "tailwindcss";` and must be excluded from `collectstatic` with `--ignore="input.css"` — otherwise `ManifestStaticFilesStorage` tries to resolve the import and 500s.
+- Dark mode via `class` strategy with `localStorage` persistence. Dark palette uses **zinc** (neutral gray); light uses **slate** (blue-tinged gray).
 - HTMX loaded from CDN. django-htmx middleware enabled.
 - Forms rendered with crispy-forms + crispy-tailwind.
 
@@ -60,11 +60,13 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 - Models are **not scoped per-user** (this is a 2-person app). Appointments and files are shared; `WeeklyLog` and `KickCount` track `logged_by`.
 - Profile `due_date` stores first day of last menstrual period (FUR/LMP). `pregnancy_week` and `days_remaining` are computed properties.
 - Google Calendar integration is fire-and-forget: failures are logged but don't block the request (signal handler catches all exceptions).
-- Timezone is hardcoded to `America/Lima`.
+- Timezone is hardcoded to `America/Lima` with `USE_TZ=True`. For date calculations that represent "today" to the user, use `timezone.localdate()` — **not** `timezone.now().date()` (which returns UTC) or `date.today()` (which returns system-local, flaky in CI).
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/deploy.yml`): pushes to `main` run pytest with a Postgres service container, then build Tailwind CSS on the runner, `scp` the minified `output.css` to the VPS, and SSH-deploy (pull, pip install, migrate, collectstatic, restart gunicorn). Tailwind is built in CI (not on the VPS) because budget VPSes OOM-kill tailwindcss during the build.
+GitHub Actions (`.github/workflows/deploy.yml`): pushes to `main` run pytest with a Postgres service container, then build Tailwind CSS on the runner, `scp` the minified `output.css` to the VPS, and SSH-deploy. The SSH script `source .env` (so `DJANGO_SETTINGS_MODULE=config.settings.production` is set for `manage.py`), then runs migrate, `touch static/css/output.css` (so `collectstatic` doesn't skip on mtime), `collectstatic --no-input --clear --ignore="input.css"`, and restarts gunicorn. Tailwind is built in CI (not on the VPS) because budget VPSes OOM-kill tailwindcss during the build.
+
+Production uses `ManifestStaticFilesStorage` (set in `config/settings/production.py`): `collectstatic` content-hashes static filenames (`output.css` → `output.a1b2c3d4.css`) and writes `staticfiles.json`. Combined with Nginx's `expires 30d` + `Cache-Control: public, immutable` on `/static/`, this gives permanent-cache for unchanged assets and instant invalidation when content changes. Any `{% static %}` reference to a file missing from the manifest raises `ValueError` at render time — a 500 on all pages.
 
 `scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: installs Python/Postgres/Nginx/Certbot/Tailwind CLI, creates the `deploy` user with `NOPASSWD` sudo scoped to `systemctl restart gunicorn-baby`, sets up the DB, clones the repo, writes `.env`, runs migrations + collectstatic, installs the `gunicorn-baby` systemd unit, configures Nginx, issues a Let's Encrypt cert, and enables UFW. Idempotent — safe to re-run.
 
