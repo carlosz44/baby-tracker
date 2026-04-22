@@ -82,5 +82,6 @@ jobs:
             source venv/bin/activate
             pip install -r requirements/production.txt --quiet
             python manage.py migrate --no-input
-            python manage.py collectstatic --no-input
+            touch static/css/output.css
+            python manage.py collectstatic --no-input --clear
             sudo systemctl restart gunicorn-baby
