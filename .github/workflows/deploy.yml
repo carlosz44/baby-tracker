@@ -80,6 +80,9 @@ jobs:
             cd /var/www/baby-tracker
             git pull origin main
             source venv/bin/activate
+            set -a
+            source .env
+            set +a
             pip install -r requirements/production.txt --quiet
             python manage.py migrate --no-input
             touch static/css/output.css
