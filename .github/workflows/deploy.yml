@@ -86,5 +86,5 @@ jobs:
             pip install -r requirements/production.txt --quiet
             python manage.py migrate --no-input
             touch static/css/output.css
-            python manage.py collectstatic --no-input --clear
+            python manage.py collectstatic --no-input --clear --ignore="input.css"
             sudo systemctl restart gunicorn-baby
