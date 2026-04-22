@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
@@ -16,12 +15,21 @@ class User(AbstractUser):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    """Shared pregnancy profile. Singleton — one row per installation, both
+    partners read/write the same record."""
+
     due_date = models.DateField(
         help_text="First day of last menstrual period (FUR/LMP)",
         null=True,
         blank=True,
     )
+
+    @classmethod
+    def get_singleton(cls):
+        profile = cls.objects.first()
+        if profile is None:
+            profile = cls.objects.create()
+        return profile
 
     @property
     def pregnancy_week(self):
@@ -44,4 +52,4 @@ class Profile(models.Model):
         return self.due_date + timedelta(days=280)
 
     def __str__(self):
-        return f"Profile for {self.user.email}"
+        return f"Pregnancy (due {self.due_date})" if self.due_date else "Pregnancy"

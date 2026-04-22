@@ -7,18 +7,16 @@ from apps.accounts.models import Profile
 
 
 @pytest.mark.django_db
-def test_profile_pregnancy_week(user):
+def test_profile_pregnancy_week():
     profile = Profile.objects.create(
-        user=user,
         due_date=timezone.localdate() - timedelta(weeks=12),
     )
     assert profile.pregnancy_week == 12
 
 
 @pytest.mark.django_db
-def test_profile_days_remaining(user):
+def test_profile_days_remaining():
     profile = Profile.objects.create(
-        user=user,
         due_date=timezone.localdate(),
     )
     assert profile.days_remaining == 280

@@ -19,7 +19,7 @@ def weekly_log_list(request):
 
 @login_required
 def weekly_log_create(request):
-    profile = Profile.objects.filter(user=request.user).first()
+    profile = Profile.objects.first()
     initial = {}
     if profile and profile.pregnancy_week is not None:
         initial["week_number"] = profile.pregnancy_week

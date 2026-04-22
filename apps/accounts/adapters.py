@@ -1,8 +1,14 @@
 from django.conf import settings
 from django.shortcuts import redirect
 
+from allauth.account.adapter import DefaultAccountAdapter
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+
+
+class NoSignupAccountAdapter(DefaultAccountAdapter):
+    def is_open_for_signup(self, request):
+        return False
 
 
 class WhitelistSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -13,8 +19,13 @@ class WhitelistSocialAccountAdapter(DefaultSocialAccountAdapter):
         if email not in allowed:
             raise ImmediateHttpResponse(redirect("forbidden"))
 
+    def is_open_for_signup(self, request, sociallogin):
+        email = sociallogin.account.extra_data.get("email", "")
+        return email in settings.ALLOWED_LOGIN_EMAILS
+
     def is_auto_signup_allowed(self, request, sociallogin):
-        return True
+        email = sociallogin.account.extra_data.get("email", "")
+        return email in settings.ALLOWED_LOGIN_EMAILS
 
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)

@@ -15,7 +15,7 @@ from .models import Profile, User
 
 @login_required
 def dashboard(request):
-    profile, _ = Profile.objects.get_or_create(user=request.user)
+    profile = Profile.get_singleton()
 
     upcoming_appointments = Appointment.objects.filter(
         date__gte=timezone.now()
@@ -35,7 +35,7 @@ def dashboard(request):
 
 @login_required
 def profile_view(request):
-    profile, _ = Profile.objects.get_or_create(user=request.user)
+    profile = Profile.get_singleton()
 
     if request.method == "POST":
         form = ProfileForm(request.POST, instance=profile)

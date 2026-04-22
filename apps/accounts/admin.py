@@ -12,5 +12,4 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "due_date", "pregnancy_week", "days_remaining")
-    raw_id_fields = ["user"]
+    list_display = ("due_date", "pregnancy_week", "days_remaining")

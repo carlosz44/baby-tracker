@@ -123,6 +123,7 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 
+ACCOUNT_ADAPTER = "apps.accounts.adapters.NoSignupAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.WhitelistSocialAccountAdapter"
 
 LOGIN_REDIRECT_URL = "/"
