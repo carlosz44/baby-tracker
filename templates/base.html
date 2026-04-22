@@ -205,47 +205,90 @@
       <header
         class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 flex items-center justify-between"
       >
-        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">
+        <h1 class="min-w-0 truncate text-lg font-semibold text-slate-800 dark:text-slate-100">
           {% block header %}Baby Tracker{% endblock %}
         </h1>
-
-        <button
-          id="theme-toggle"
-          type="button"
-          class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
-          aria-label="Cambiar modo oscuro"
-        >
-          {# Sun icon (shown in dark mode) #}
-          <svg
-            id="icon-sun"
-            class="w-5 h-5 hidden"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {% with request.path as current %}
+        <div class="flex shrink-0 items-center gap-1">
+          <a
+            href="/accounts/profile/"
+            class="md:hidden p-2 rounded-lg {% if '/accounts/profile' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+            aria-label="Ir al perfil"
+            title="Perfil"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-            />
-          </svg>
-          {# Moon icon (shown in light mode) #}
-          <svg
-            id="icon-moon"
-            class="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+          </a>
+          <a
+            href="/accounts/logout/"
+            class="md:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-            />
-          </svg>
-        </button>
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+          </a>
+          <button
+            id="theme-toggle"
+            type="button"
+            class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            aria-label="Cambiar modo oscuro"
+          >
+            {# Sun icon (shown in dark mode) #}
+            <svg
+              id="icon-sun"
+              class="w-5 h-5 hidden"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
+            {# Moon icon (shown in light mode) #}
+            <svg
+              id="icon-moon"
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+              />
+            </svg>
+          </button>
+        </div>
+        {% endwith %}
       </header>
 
       {# Flash messages #} {% if messages %}
