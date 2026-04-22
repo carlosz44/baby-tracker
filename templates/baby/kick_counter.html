@@ -6,14 +6,14 @@
 {% block content %}
 <div class="max-w-lg mx-auto space-y-6">
   {# Formulario #}
-  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
-    <h2 class="font-semibold text-slate-800 dark:text-slate-100 mb-4">Registrar Sesión de Pataditas</h2>
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6">
+    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 mb-4">Registrar Sesión de Pataditas</h2>
     <form method="post">
       {% csrf_token %}
       <div class="space-y-4">
         {% for field in form %}
         <div>
-          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
             {{ field.label }}
           </label>
           {{ field }}
@@ -32,21 +32,21 @@
   </div>
 
   {# Recientes #}
-  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-    <h2 class="font-semibold text-slate-800 dark:text-slate-100 p-5 border-b border-slate-200 dark:border-slate-700">Últimos 7 Días</h2>
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
+    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 p-5 border-b border-slate-200 dark:border-zinc-700">Últimos 7 Días</h2>
     {% if recent_kicks %}
-      <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+      <ul class="divide-y divide-slate-100 dark:divide-zinc-700">
         {% for kick in recent_kicks %}
         <li class="px-5 py-3 flex items-center justify-between">
           <div>
-            <p class="font-medium text-slate-700 dark:text-slate-200">{{ kick.count }} pataditas</p>
-            <p class="text-sm text-slate-500 dark:text-slate-400">{{ kick.date|date:"l, d M" }}{% if kick.duration_minutes %} · {{ kick.duration_minutes }} min{% endif %}</p>
+            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ kick.count }} pataditas</p>
+            <p class="text-sm text-slate-500 dark:text-zinc-400">{{ kick.date|date:"l, d M" }}{% if kick.duration_minutes %} · {{ kick.duration_minutes }} min{% endif %}</p>
           </div>
         </li>
         {% endfor %}
       </ul>
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No hay pataditas registradas en los últimos 7 días.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay pataditas registradas en los últimos 7 días.</p>
     {% endif %}
   </div>
 </div>

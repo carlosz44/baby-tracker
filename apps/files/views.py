@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from .forms import PregnancyFileForm
 from .models import PregnancyFile
@@ -30,3 +31,20 @@ def file_upload(request):
     else:
         form = PregnancyFileForm()
     return render(request, "files/upload.html", {"form": form})
+
+
+@login_required
+@require_GET
+def file_preview(request, pk):
+    pregnancy_file = get_object_or_404(
+        PregnancyFile.objects.select_related("appointment"),
+        pk=pk,
+    )
+    return render(
+        request,
+        "files/preview.html",
+        {
+            "file": pregnancy_file,
+            "preview_url": pregnancy_file.file.url,
+        },
+    )

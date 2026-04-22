@@ -5,16 +5,16 @@
 
 {% block content %}
 <div class="max-w-lg mx-auto">
-  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6">
     <div class="mb-6">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Sesión iniciada como</p>
-      <p class="font-medium text-slate-800 dark:text-slate-100">{{ request.user.email }}</p>
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Sesión iniciada como</p>
+      <p class="font-medium text-slate-800 dark:text-zinc-100">{{ request.user.email }}</p>
     </div>
 
     {% if partner %}
     <div class="mb-6 p-4 bg-rose-50 dark:bg-rose-500/10 rounded-lg">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Pareja</p>
-      <p class="font-medium text-slate-700 dark:text-slate-200">{{ partner.email }}</p>
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Pareja</p>
+      <p class="font-medium text-slate-700 dark:text-zinc-200">{{ partner.email }}</p>
     </div>
     {% endif %}
 
@@ -22,20 +22,20 @@
       {% csrf_token %}
       <div class="space-y-4">
         <div>
-          <label for="id_due_date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label for="id_due_date" class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
             Fecha de la última menstruación (FUR)
           </label>
           {{ form.due_date }}
           {% if form.due_date.errors %}
             <p class="text-sm text-red-500 mt-1">{{ form.due_date.errors.0 }}</p>
           {% endif %}
-          <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Se usa para calcular tu semana de embarazo y la fecha probable de parto.</p>
+          <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">Se usa para calcular tu semana de embarazo y la fecha probable de parto.</p>
         </div>
 
         {% if profile.estimated_delivery_date %}
-        <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-          <p class="text-sm text-slate-500 dark:text-slate-400">Fecha probable de parto</p>
-          <p class="font-medium text-slate-700 dark:text-slate-200">{{ profile.estimated_delivery_date|date:"d \d\e F \d\e Y" }}</p>
+        <div class="p-4 bg-slate-50 dark:bg-zinc-700/50 rounded-lg">
+          <p class="text-sm text-slate-500 dark:text-zinc-400">Fecha probable de parto</p>
+          <p class="font-medium text-slate-700 dark:text-zinc-200">{{ profile.estimated_delivery_date|date:"d \d\e F \d\e Y" }}</p>
         </div>
         {% endif %}
 

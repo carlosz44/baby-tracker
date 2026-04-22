@@ -16,36 +16,143 @@
   {% if files_by_category %}
     {% for category_label, files in files_by_category.items %}
     <div>
-      <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">{{ category_label }}</h2>
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100 mb-3">{{ category_label }}</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {% for file in files %}
-        <a href="{{ file.file.url }}" target="_blank" class="group">
-          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden hover:border-rose-300 dark:hover:border-rose-500/40 transition">
+        <button type="button"
+                class="group w-full text-left"
+                hx-get="{% url 'file_preview' file.pk %}"
+                hx-target="#file-preview-content"
+                hx-swap="innerHTML"
+                data-file-preview-open
+                data-file-title="{{ file.title|escape }}">
+          <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm overflow-hidden hover:border-rose-300 dark:hover:border-rose-500/40 transition">
             {% if file.is_image %}
               <div class="aspect-square overflow-hidden">
                 <img src="{{ file.file.url }}" alt="{{ file.title }}"
-                     class="w-full h-full object-cover group-hover:scale-105 transition">
+                     class="w-full h-full object-cover group-hover:scale-105 transition"
+                     loading="lazy">
               </div>
             {% else %}
-              <div class="aspect-square flex items-center justify-center bg-slate-50 dark:bg-slate-700">
-                <svg class="w-12 h-12 text-slate-300 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <div class="aspect-square flex items-center justify-center bg-slate-50 dark:bg-zinc-700">
+                <svg class="w-12 h-12 text-slate-300 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
               </div>
             {% endif %}
             <div class="p-3">
-              <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{{ file.title }}</p>
-              <p class="text-xs text-slate-400 dark:text-slate-500">{{ file.uploaded_at|date:"d M Y" }}</p>
+              <p class="text-sm font-medium text-slate-700 dark:text-zinc-200 truncate">{{ file.title }}</p>
+              <p class="text-xs text-slate-400 dark:text-zinc-500">{{ file.uploaded_at|date:"d M Y" }}</p>
             </div>
           </div>
-        </a>
+        </button>
         {% endfor %}
       </div>
     </div>
     {% endfor %}
   {% else %}
     <div class="text-center py-12">
-      <p class="text-slate-400 dark:text-slate-500 mb-2">No hay archivos subidos.</p>
+      <p class="text-slate-400 dark:text-zinc-500 mb-2">No hay archivos subidos.</p>
       <a href="{% url 'file_upload' %}" class="text-rose-500 dark:text-rose-400 hover:underline text-sm">Sube tu primer archivo</a>
     </div>
   {% endif %}
 </div>
+
+<div id="file-preview-modal"
+     class="fixed inset-0 z-60 hidden"
+     aria-hidden="true">
+  <div class="absolute inset-0 bg-slate-950/70" data-file-preview-close></div>
+
+  <div class="relative flex min-h-full items-end justify-center p-2 sm:items-center sm:p-4">
+    <div class="relative flex max-h-[calc(100vh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-zinc-800 sm:max-h-[calc(100vh-2rem)]"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="file-preview-modal-title">
+      <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-zinc-700">
+        <h2 id="file-preview-modal-title" class="text-sm font-semibold text-slate-800 dark:text-zinc-100">
+          Vista previa del archivo
+        </h2>
+        <button type="button"
+                class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                data-file-preview-close
+                aria-label="Cerrar vista previa">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div id="file-preview-content" class="min-h-72 overflow-auto bg-slate-50 dark:bg-zinc-900/40">
+        <div class="flex min-h-72 items-center justify-center px-6 text-sm text-slate-500 dark:text-zinc-400">
+          Selecciona un archivo para ver la vista previa.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var modal = document.getElementById("file-preview-modal");
+    var content = document.getElementById("file-preview-content");
+    if (!modal || !content) {
+      return;
+    }
+
+    var closeButtons = modal.querySelectorAll("[data-file-preview-close]");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function setLoadingState(title) {
+      content.innerHTML =
+        '<div class="flex min-h-72 flex-col items-center justify-center gap-2 px-6 text-center">' +
+        '<div class="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-rose-500 dark:border-zinc-600 dark:border-t-rose-400"></div>' +
+        '<p class="text-sm text-slate-500 dark:text-zinc-400">Cargando ' + escapeHtml(title) + '...</p>' +
+        '</div>';
+    }
+
+    function openModal(title) {
+      setLoadingState(title || "archivo");
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("overflow-hidden");
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    document.addEventListener("click", function (event) {
+      var trigger = event.target.closest("[data-file-preview-open]");
+      if (trigger) {
+        openModal(trigger.dataset.fileTitle || "archivo");
+      }
+    });
+
+    closeButtons.forEach(function (button) {
+      button.addEventListener("click", closeModal);
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
+
+    document.body.addEventListener("htmx:responseError", function (event) {
+      if (event.detail.target && event.detail.target.id === "file-preview-content") {
+        content.innerHTML =
+          '<div class="flex min-h-72 flex-col items-center justify-center gap-2 px-6 text-center">' +
+          '<p class="text-sm font-medium text-slate-700 dark:text-zinc-200">No se pudo cargar la vista previa.</p>' +
+          '<p class="text-sm text-slate-500 dark:text-zinc-400">Intenta nuevamente en unos segundos.</p>' +
+          '</div>';
+      }
+    });
+  })();
+</script>
 {% endblock %}

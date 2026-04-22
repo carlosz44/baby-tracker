@@ -8,8 +8,8 @@
 
   {# Pregnancy overview cards #}
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Semana Actual</p>
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Semana Actual</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
         {% if profile.pregnancy_week is not None %}
           {{ profile.pregnancy_week }}
@@ -17,11 +17,11 @@
           —
         {% endif %}
       </p>
-      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">semanas de embarazo</p>
+      <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">semanas de embarazo</p>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Días para la Fecha Probable</p>
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Días para la Fecha Probable</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
         {% if profile.days_remaining is not None %}
           {{ profile.days_remaining }}
@@ -29,7 +29,7 @@
           —
         {% endif %}
       </p>
-      <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+      <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">
         {% if profile.estimated_delivery_date %}
           {{ profile.estimated_delivery_date|date:"d M Y" }}
         {% else %}
@@ -38,31 +38,31 @@
       </p>
     </div>
 
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Último Registro</p>
+    <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
+      <p class="text-sm text-slate-500 dark:text-zinc-400">Último Registro</p>
       {% if last_log %}
         <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">Semana {{ last_log.week_number }}</p>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ last_log.weight_kg }} kg · {{ last_log.get_mood_display }}</p>
+        <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">{{ last_log.weight_kg }} kg · {{ last_log.get_mood_display }}</p>
       {% else %}
-        <p class="text-lg text-slate-400 dark:text-slate-500 mt-2">Sin registros todavía</p>
+        <p class="text-lg text-slate-400 dark:text-zinc-500 mt-2">Sin registros todavía</p>
         <a href="/baby/logs/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Añade tu primer registro</a>
       {% endif %}
     </div>
   </div>
 
   {# Upcoming appointments #}
-  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Próximas Citas</h2>
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-700">
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Próximas Citas</h2>
       <a href="/appointments/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Nueva</a>
     </div>
     {% if upcoming_appointments %}
-      <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+      <ul class="divide-y divide-slate-100 dark:divide-zinc-700">
         {% for appt in upcoming_appointments %}
         <li class="px-5 py-3 flex items-center justify-between">
           <div>
-            <p class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</p>
-            <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"d M Y · H:i" }}{% if appt.doctor %} · {{ appt.doctor }}{% endif %}</p>
+            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ appt.title }}</p>
+            <p class="text-sm text-slate-500 dark:text-zinc-400">{{ appt.date|date:"d M Y · H:i" }}{% if appt.doctor %} · {{ appt.doctor }}{% endif %}</p>
           </div>
           <span class="text-xs px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
             {{ appt.get_appointment_type_display }}
@@ -71,14 +71,14 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No hay citas próximas.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay citas próximas.</p>
     {% endif %}
   </div>
 
   {# Recent files #}
-  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-      <h2 class="font-semibold text-slate-800 dark:text-slate-100">Archivos Recientes</h2>
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-700">
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Archivos Recientes</h2>
       <a href="/files/upload/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Subir</a>
     </div>
     {% if recent_files %}
@@ -86,20 +86,20 @@
         {% for file in recent_files %}
         <div class="text-center">
           {% if file.is_image %}
-            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden">
+            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 overflow-hidden">
               <img src="{{ file.file.url }}" alt="{{ file.title }}" class="w-full h-full object-cover">
             </div>
           {% else %}
-            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 flex items-center justify-center">
               <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
             </div>
           {% endif %}
-          <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 truncate">{{ file.title }}</p>
+          <p class="text-xs text-slate-600 dark:text-zinc-300 mt-1 truncate">{{ file.title }}</p>
         </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-slate-500">No hay archivos subidos.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay archivos subidos.</p>
     {% endif %}
   </div>
 

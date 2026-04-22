@@ -21,11 +21,11 @@
     {% block extra_head %}{% endblock %}
   </head>
   <body
-    class="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-200 min-h-screen flex flex-col md:flex-row"
+    class="bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-200 min-h-screen flex flex-col md:flex-row"
   >
     {# ── Sidebar (desktop) ── #}
     <aside
-      class="hidden md:flex md:flex-col md:w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 min-h-screen"
+      class="hidden md:flex md:flex-col md:w-64 bg-white dark:bg-zinc-800 border-r border-slate-200 dark:border-zinc-700 min-h-screen"
     >
       <div class="h-16 px-6 flex items-center">
         <a href="/" class="flex items-center gap-2">
@@ -40,7 +40,7 @@
         {% with request.path as current %}
         <a
           href="/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if current == '/' %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if current == '/' %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
         >
           <svg
             class="w-5 h-5"
@@ -59,7 +59,7 @@
         </a>
         <a
           href="/appointments/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/appointments' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/appointments' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
         >
           <svg
             class="w-5 h-5"
@@ -78,7 +78,7 @@
         </a>
         <a
           href="/files/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/files' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/files' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
         >
           <svg
             class="w-5 h-5"
@@ -97,7 +97,7 @@
         </a>
         <a
           href="/baby/logs/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/baby/logs' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/baby/logs' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
         >
           <svg
             class="w-5 h-5"
@@ -116,7 +116,7 @@
         </a>
         <a
           href="/baby/kick-counter/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/baby/kick-counter' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/baby/kick-counter' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
         >
           <svg
             class="w-5 h-5"
@@ -135,7 +135,7 @@
         </a>
         <a
           href="/baby/birth-plan/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/baby/birth-plan' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/baby/birth-plan' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
         >
           <svg
             class="w-5 h-5"
@@ -156,11 +156,11 @@
       </nav>
 
       <div
-        class="p-4 border-t border-slate-200 dark:border-slate-700 space-y-2"
+        class="p-4 border-t border-slate-200 dark:border-zinc-700 space-y-2"
       >
         <a
           href="/accounts/profile/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700"
         >
           <svg
             class="w-5 h-5"
@@ -179,7 +179,7 @@
         </a>
         <a
           href="/accounts/logout/"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700"
         >
           <svg
             class="w-5 h-5"
@@ -203,16 +203,16 @@
     <div class="flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
       {# Top bar #}
       <header
-        class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 flex items-center justify-between"
+        class="h-16 bg-white dark:bg-zinc-800 border-b border-slate-200 dark:border-zinc-700 px-4 flex items-center justify-between"
       >
-        <h1 class="min-w-0 truncate text-lg font-semibold text-slate-800 dark:text-slate-100">
+        <h1 class="min-w-0 truncate text-lg font-semibold text-slate-800 dark:text-zinc-100">
           {% block header %}Baby Tracker{% endblock %}
         </h1>
         {% with request.path as current %}
         <div class="flex shrink-0 items-center gap-1">
           <a
             href="/accounts/profile/"
-            class="md:hidden p-2 rounded-lg {% if '/accounts/profile' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}"
+            class="md:hidden p-2 rounded-lg {% if '/accounts/profile' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
             aria-label="Ir al perfil"
             title="Perfil"
           >
@@ -232,7 +232,7 @@
           </a>
           <a
             href="/accounts/logout/"
-            class="md:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            class="md:hidden p-2 rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
           >
@@ -253,7 +253,7 @@
           <button
             id="theme-toggle"
             type="button"
-            class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            class="p-2 rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
             aria-label="Cambiar modo oscuro"
           >
             {# Sun icon (shown in dark mode) #}
@@ -313,12 +313,12 @@
 
     {# ── Bottom nav (mobile) ── #}
     <nav
-      class="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around py-2 z-50"
+      class="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-zinc-800 border-t border-slate-200 dark:border-zinc-700 flex justify-around py-2 z-50"
     >
       {% with request.path as current %}
       <a
         href="/"
-        class="flex flex-col items-center gap-0.5 text-xs {% if current == '/' %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400{% endif %}"
+        class="flex flex-col items-center gap-0.5 text-xs {% if current == '/' %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
       >
         <svg
           class="w-5 h-5"
@@ -337,7 +337,7 @@
       </a>
       <a
         href="/appointments/"
-        class="flex flex-col items-center gap-0.5 text-xs {% if '/appointments' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400{% endif %}"
+        class="flex flex-col items-center gap-0.5 text-xs {% if '/appointments' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
       >
         <svg
           class="w-5 h-5"
@@ -356,7 +356,7 @@
       </a>
       <a
         href="/files/"
-        class="flex flex-col items-center gap-0.5 text-xs {% if '/files' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400{% endif %}"
+        class="flex flex-col items-center gap-0.5 text-xs {% if '/files' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
       >
         <svg
           class="w-5 h-5"
@@ -375,7 +375,7 @@
       </a>
       <a
         href="/baby/logs/"
-        class="flex flex-col items-center gap-0.5 text-xs {% if '/baby/logs' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400{% endif %}"
+        class="flex flex-col items-center gap-0.5 text-xs {% if '/baby/logs' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
       >
         <svg
           class="w-5 h-5"
@@ -394,7 +394,7 @@
       </a>
       <a
         href="/baby/kick-counter/"
-        class="flex flex-col items-center gap-0.5 text-xs {% if '/baby/kick-counter' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-slate-400{% endif %}"
+        class="flex flex-col items-center gap-0.5 text-xs {% if '/baby/kick-counter' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
       >
         <svg
           class="w-5 h-5"

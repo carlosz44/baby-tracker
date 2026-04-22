@@ -3,8 +3,8 @@ from django import forms
 from .models import BirthPlan, KickCount, WeeklyLog
 
 INPUT_CLASSES = (
-    "w-full rounded-lg border border-slate-300 dark:border-slate-600 "
-    "bg-white dark:bg-slate-700 px-3 py-2 text-slate-700 dark:text-slate-200 "
+    "w-full rounded-lg border border-slate-300 dark:border-zinc-600 "
+    "bg-white dark:bg-zinc-700 px-3 py-2 text-slate-700 dark:text-zinc-200 "
     "focus:border-rose-500 focus:ring-rose-500"
 )
 

@@ -15,30 +15,30 @@
 
   {# Próximas #}
   <div>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Próximas</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100 mb-3">Próximas</h2>
     {% if upcoming %}
       <div class="space-y-3">
         {% for appt in upcoming %}
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex items-start justify-between">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4 flex items-start justify-between">
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <h3 class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</h3>
+              <h3 class="font-medium text-slate-700 dark:text-zinc-200">{{ appt.title }}</h3>
               <span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
                 {{ appt.get_appointment_type_display }}
               </span>
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <p class="text-sm text-slate-500 dark:text-zinc-400">
               {{ appt.date|date:"l, d M Y · H:i" }}
             </p>
             {% if appt.doctor or appt.clinic %}
-            <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">
+            <p class="text-sm text-slate-400 dark:text-zinc-500 mt-1">
               {% if appt.doctor %}{{ appt.doctor }}{% endif %}
               {% if appt.doctor and appt.clinic %} · {% endif %}
               {% if appt.clinic %}{{ appt.clinic }}{% endif %}
             </p>
             {% endif %}
             {% if appt.pregnancy_week_at_appointment is not None %}
-            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Semana {{ appt.pregnancy_week_at_appointment }}</p>
+            <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">Semana {{ appt.pregnancy_week_at_appointment }}</p>
             {% endif %}
           </div>
           <div class="flex gap-2 ml-4 shrink-0">
@@ -53,25 +53,25 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-sm text-slate-400 dark:text-slate-500">No hay citas próximas.</p>
+      <p class="text-sm text-slate-400 dark:text-zinc-500">No hay citas próximas.</p>
     {% endif %}
   </div>
 
   {# Pasadas #}
   {% if past %}
   <div>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">Pasadas</h2>
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100 mb-3">Pasadas</h2>
     <div class="space-y-3 opacity-75">
       {% for appt in past %}
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex items-start justify-between">
+      <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4 flex items-start justify-between">
         <div>
           <div class="flex items-center gap-2 mb-1">
-            <h3 class="font-medium text-slate-700 dark:text-slate-200">{{ appt.title }}</h3>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+            <h3 class="font-medium text-slate-700 dark:text-zinc-200">{{ appt.title }}</h3>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-500 dark:text-zinc-400">
               {{ appt.get_appointment_type_display }}
             </span>
           </div>
-          <p class="text-sm text-slate-500 dark:text-slate-400">{{ appt.date|date:"d M Y · H:i" }}</p>
+          <p class="text-sm text-slate-500 dark:text-zinc-400">{{ appt.date|date:"d M Y · H:i" }}</p>
         </div>
         <div class="flex gap-2 ml-4 shrink-0">
           <a href="{% url 'appointment_edit' appt.pk %}" class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400">

@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django.db import models
@@ -15,7 +17,9 @@ class PregnancyFile(models.Model):
     file = models.FileField(
         upload_to="pregnancy-files/%Y/%m/",
         validators=[
-            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp", "pdf"]),
+            FileExtensionValidator(
+                allowed_extensions=["jpg", "jpeg", "png", "webp", "pdf"]
+            ),
         ],
     )
     category = models.CharField(max_length=20, choices=CATEGORIES)
@@ -43,6 +47,18 @@ class PregnancyFile(models.Model):
         if self.file and self.file.name:
             return self.file.name.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
         return False
+
+    @property
+    def is_pdf(self):
+        if self.file and self.file.name:
+            return self.file.name.lower().endswith(".pdf")
+        return False
+
+    @property
+    def filename(self):
+        if self.file and self.file.name:
+            return os.path.basename(self.file.name)
+        return ""
 
     def __str__(self):
         return self.title

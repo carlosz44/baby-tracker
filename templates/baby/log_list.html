@@ -16,11 +16,11 @@
   {% if logs %}
     <div class="space-y-3">
       {% for log in logs %}
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+      <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4">
         <div class="flex items-start justify-between">
           <div>
-            <h3 class="font-medium text-slate-700 dark:text-slate-200">Semana {{ log.week_number }}</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">{{ log.date|date:"d M Y" }}</p>
+            <h3 class="font-medium text-slate-700 dark:text-zinc-200">Semana {{ log.week_number }}</h3>
+            <p class="text-sm text-slate-500 dark:text-zinc-400">{{ log.date|date:"d M Y" }}</p>
           </div>
           <span class="text-xs px-2 py-1 rounded-full
             {% if log.mood == 'great' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
@@ -32,7 +32,7 @@
           </span>
         </div>
 
-        <div class="mt-3 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
+        <div class="mt-3 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-zinc-300">
           <span>{{ log.weight_kg }} kg</span>
           {% if log.blood_pressure_systolic and log.blood_pressure_diastolic %}
             <span>Presión: {{ log.blood_pressure_systolic }}/{{ log.blood_pressure_diastolic }}</span>
@@ -40,14 +40,14 @@
         </div>
 
         {% if log.symptoms %}
-          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ log.symptoms|truncatewords:20 }}</p>
+          <p class="mt-2 text-sm text-slate-500 dark:text-zinc-400">{{ log.symptoms|truncatewords:20 }}</p>
         {% endif %}
       </div>
       {% endfor %}
     </div>
   {% else %}
     <div class="text-center py-12">
-      <p class="text-slate-400 dark:text-slate-500 mb-2">Sin registros todavía.</p>
+      <p class="text-slate-400 dark:text-zinc-500 mb-2">Sin registros todavía.</p>
       <a href="{% url 'weekly_log_create' %}" class="text-rose-500 dark:text-rose-400 hover:underline text-sm">Crea tu primer registro semanal</a>
     </div>
   {% endif %}
