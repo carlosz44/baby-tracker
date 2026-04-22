@@ -64,7 +64,7 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/deploy.yml`): pushes to `main` run pytest with a Postgres service container, then SSH-deploy to VPS (pull, pip install, tailwind build, migrate, collectstatic, restart gunicorn).
+GitHub Actions (`.github/workflows/deploy.yml`): pushes to `main` run pytest with a Postgres service container, then build Tailwind CSS on the runner, `scp` the minified `output.css` to the VPS, and SSH-deploy (pull, pip install, migrate, collectstatic, restart gunicorn). Tailwind is built in CI (not on the VPS) because budget VPSes OOM-kill tailwindcss during the build.
 
 `scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: installs Python/Postgres/Nginx/Certbot/Tailwind CLI, creates the `deploy` user with `NOPASSWD` sudo scoped to `systemctl restart gunicorn-baby`, sets up the DB, clones the repo, writes `.env`, runs migrations + collectstatic, installs the `gunicorn-baby` systemd unit, configures Nginx, issues a Let's Encrypt cert, and enables UFW. Idempotent — safe to re-run.
 
