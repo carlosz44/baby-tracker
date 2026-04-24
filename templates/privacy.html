@@ -1,0 +1,64 @@
+{% extends "account/base_auth.html" %}
+
+{% block title %}Política de privacidad — Baby Tracker{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-3xl px-6 py-12">
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-8 space-y-6 text-slate-700 dark:text-zinc-300">
+
+    <header>
+      <p class="text-sm font-medium uppercase tracking-wide text-rose-500 dark:text-rose-400">Baby Tracker</p>
+      <h1 class="mt-1 text-2xl font-bold text-slate-800 dark:text-zinc-100">Política de privacidad</h1>
+      <p class="mt-1 text-sm text-slate-500 dark:text-zinc-400">Última actualización: 23 de abril de 2026</p>
+    </header>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Qué es esta aplicación</h2>
+      <p>Baby Tracker es una aplicación privada de seguimiento de embarazo, usada exclusivamente por dos personas (una pareja) para organizar información de un embarazo compartido. No está abierta al público; el acceso está restringido mediante una lista blanca de cuentas de Google.</p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Qué datos se almacenan</h2>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Tu correo electrónico y nombre, obtenidos de tu cuenta de Google al iniciar sesión.</li>
+        <li>Información del embarazo que tú introduces: fecha de la última menstruación, semanas registradas, peso, presión arterial, síntomas, estado de ánimo, pataditas, plan de parto.</li>
+        <li>Citas médicas (título, fecha, médico, clínica, notas) y archivos que subes (ecografías, análisis, fotos).</li>
+        <li>Tokens de acceso y actualización de Google, necesarios para crear eventos en tu Google Calendar.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Cómo se usan tus datos</h2>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>Los datos se guardan en una base de datos privada que solo tú y tu pareja pueden consultar a través de esta aplicación.</li>
+        <li>Los archivos (imágenes, PDFs) se almacenan cifrados en reposo en Cloudflare R2.</li>
+        <li>Los eventos de citas médicas se sincronizan con tu Google Calendar personal utilizando la API de Google. No se envían a ningún otro destino.</li>
+        <li>No se comparten, venden ni transfieren datos a terceros. No hay publicidad, analítica ni seguimiento.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Servicios de terceros</h2>
+      <ul class="list-disc pl-6 space-y-1">
+        <li><strong>Google</strong> — OAuth (inicio de sesión) y Google Calendar (sincronización de citas). Consulta la <a href="https://policies.google.com/privacy" class="text-rose-500 hover:underline">política de privacidad de Google</a>.</li>
+        <li><strong>Cloudflare R2</strong> — almacenamiento de archivos. Consulta la <a href="https://www.cloudflare.com/privacypolicy/" class="text-rose-500 hover:underline">política de privacidad de Cloudflare</a>.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Retención y eliminación</h2>
+      <p>Los datos permanecen mientras la aplicación esté en funcionamiento. Los usuarios autorizados pueden eliminar sus datos directamente desde la aplicación o solicitar su borrado a través de los canales de soporte.</p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Seguridad</h2>
+      <p>La aplicación usa HTTPS en toda la comunicación, autenticación exclusiva por Google OAuth restringida por lista blanca, y el servidor se mantiene actualizado con parches de seguridad.</p>
+    </section>
+
+    <footer class="border-t border-slate-200 dark:border-zinc-700 pt-4 text-xs text-slate-400 dark:text-zinc-500">
+      <a href="/" class="hover:underline">← Volver al inicio</a>
+    </footer>
+
+  </div>
+</div>
+{% endblock %}

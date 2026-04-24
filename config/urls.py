@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from apps.accounts.views import dashboard, forbidden
 
@@ -12,6 +13,7 @@ urlpatterns = [
     path("files/", include("apps.files.urls")),
     path("baby/", include("apps.baby.urls")),
     path("forbidden/", forbidden, name="forbidden"),
+    path("privacy/", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
     path("", dashboard, name="dashboard"),
 ]
 
