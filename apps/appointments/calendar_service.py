@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 
@@ -11,6 +11,16 @@ from allauth.socialaccount.models import SocialApp, SocialToken
 
 logger = logging.getLogger(__name__)
 
+CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar"
+
+
+class MissingCalendarAuth(Exception):
+    """User has no Google token, or no refresh token to keep the session alive."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(reason)
+
 
 def _get_oauth_app():
     app = SocialApp.objects.filter(provider="google").first()
@@ -20,24 +30,105 @@ def _get_oauth_app():
     return google_cfg.get("client_id", ""), google_cfg.get("secret", "")
 
 
-def get_calendar_service(user):
-    token = SocialToken.objects.filter(
-        account__user=user,
-        account__provider="google",
-    ).first()
-    if not token:
-        logger.warning("No Google token for user %s", user.email)
-        return None
-
+def _build_credentials(token: SocialToken) -> Credentials:
     client_id, client_secret = _get_oauth_app()
-    credentials = Credentials(
+    expiry = None
+    if token.expires_at:
+        expiry = token.expires_at.astimezone(dt_timezone.utc).replace(tzinfo=None)
+    return Credentials(
         token=token.token,
         refresh_token=token.token_secret,
         token_uri="https://oauth2.googleapis.com/token",
         client_id=client_id,
         client_secret=client_secret,
+        scopes=[CALENDAR_SCOPE],
+        expiry=expiry,
     )
-    return build("calendar", "v3", credentials=credentials, cache_discovery=False)
+
+
+def _persist_refreshed_credentials(token: SocialToken, credentials: Credentials) -> None:
+    if not credentials.token or credentials.token == token.token:
+        return
+    token.token = credentials.token
+    if credentials.expiry:
+        token.expires_at = credentials.expiry.replace(tzinfo=dt_timezone.utc)
+    token.save(update_fields=["token", "expires_at"])
+
+
+def _get_token_for_user(user) -> SocialToken:
+    token = SocialToken.objects.filter(
+        account__user=user,
+        account__provider="google",
+    ).first()
+    if not token:
+        raise MissingCalendarAuth("no_token")
+    if not token.token_secret:
+        raise MissingCalendarAuth("no_refresh_token")
+    return token
+
+
+def get_calendar_service(user):
+    """Return (service, token, credentials) for the given user.
+
+    Raises MissingCalendarAuth if the user has no usable token. Caller is
+    responsible for invoking _persist_refreshed_credentials after API use
+    (done inside the upsert/delete helpers below).
+    """
+    token = _get_token_for_user(user)
+    credentials = _build_credentials(token)
+    service = build("calendar", "v3", credentials=credentials, cache_discovery=False)
+    return service, token, credentials
+
+
+def run_calendar_diagnostics() -> list[dict]:
+    """Per-user calendar auth + API ping report.
+
+    Returns a list of dicts (one per user). Each dict has at least:
+      email, auth_status ("ok" | "missing"),
+    and when auth_status == "ok":
+      access_token_present, refresh_token_present, expires_at,
+      api_ping ("ok" | "failed"), and either calendar_count or error.
+    When auth_status == "missing": auth_reason ("no_token" | "no_refresh_token").
+
+    Persists any access token refreshed during the live API call.
+    """
+    from apps.accounts.models import User
+
+    results: list[dict] = []
+    for user in User.objects.order_by("email"):
+        result: dict = {"email": user.email}
+
+        try:
+            service, token, credentials = get_calendar_service(user)
+        except MissingCalendarAuth as exc:
+            result["auth_status"] = "missing"
+            result["auth_reason"] = exc.reason
+            results.append(result)
+            continue
+
+        result["auth_status"] = "ok"
+        result["access_token_present"] = bool(token.token)
+        result["refresh_token_present"] = bool(token.token_secret)
+        result["expires_at"] = token.expires_at
+
+        original_token = token.token
+        try:
+            resp = service.calendarList().list(maxResults=1).execute()
+            result["api_ping"] = "ok"
+            result["calendar_count"] = len(resp.get("items", []))
+            if credentials.token and credentials.token != original_token:
+                _persist_refreshed_credentials(token, credentials)
+                result["refreshed"] = True
+        except HttpError as e:
+            result["api_ping"] = "failed"
+            result["error"] = f"{e.resp.status} {e.reason}"
+        except Exception as e:
+            result["api_ping"] = "failed"
+            result["error"] = f"{type(e).__name__}: {e}"
+
+        results.append(result)
+
+    return results
 
 
 def _build_event_body(appointment):
@@ -61,52 +152,108 @@ def _build_event_body(appointment):
 
 
 def upsert_event_for_user(appointment, user, event_id=None):
-    """Create or update the appointment on user's primary calendar. Returns event id or None."""
-    service = get_calendar_service(user)
-    if not service:
-        return None
+    """Create or update the appointment on user's primary calendar. Returns event id.
 
+    Raises MissingCalendarAuth if the user can't be authenticated.
+    """
+    service, token, credentials = get_calendar_service(user)
     body = _build_event_body(appointment)
 
     try:
         if event_id:
-            event = service.events().update(
-                calendarId="primary", eventId=event_id, body=body
-            ).execute()
+            try:
+                event = service.events().update(
+                    calendarId="primary", eventId=event_id, body=body
+                ).execute()
+            except HttpError as e:
+                if e.resp.status in (404, 410):
+                    event = service.events().insert(
+                        calendarId="primary", body=body
+                    ).execute()
+                else:
+                    raise
         else:
             event = service.events().insert(calendarId="primary", body=body).execute()
         return event.get("id")
-    except HttpError as e:
-        if event_id and e.resp.status in (404, 410):
-            event = service.events().insert(calendarId="primary", body=body).execute()
-            return event.get("id")
-        logger.exception("Calendar upsert failed for user %s", user.email)
-        return None
+    finally:
+        _persist_refreshed_credentials(token, credentials)
 
 
 def delete_event_for_user(user, event_id):
-    service = get_calendar_service(user)
-    if not service:
-        return
+    """Delete the user's calendar event. Raises MissingCalendarAuth if not authed."""
+    service, token, credentials = get_calendar_service(user)
     try:
-        service.events().delete(calendarId="primary", eventId=event_id).execute()
-    except HttpError as e:
-        if e.resp.status in (404, 410):
-            logger.info("Event %s already gone for user %s", event_id, user.email)
-        else:
-            raise
+        try:
+            service.events().delete(calendarId="primary", eventId=event_id).execute()
+        except HttpError as e:
+            if e.resp.status in (404, 410):
+                logger.info("Event %s already gone for user %s", event_id, user.email)
+            else:
+                raise
+    finally:
+        _persist_refreshed_credentials(token, credentials)
 
 
 def sync_appointment(appointment):
     """Create or update event on every user's calendar that has Google linked."""
     from apps.accounts.models import User
+    from apps.notifications.models import Notification
+    from apps.notifications.services import mark_resolved, record_notification
+
+    from .notification_kinds import (
+        ACTION_UPSERT,
+        CALENDAR_AUTH_REQUIRED,
+        CALENDAR_SYNC_FAILED,
+        sync_dedupe_key,
+    )
 
     event_ids = dict(appointment.google_calendar_event_ids or {})
     changed = False
 
     for user in User.objects.all():
         existing = event_ids.get(str(user.pk))
-        new_id = upsert_event_for_user(appointment, user, event_id=existing)
+        dedupe_key = sync_dedupe_key(appointment.pk, user.pk, ACTION_UPSERT)
+        try:
+            new_id = upsert_event_for_user(appointment, user, event_id=existing)
+        except MissingCalendarAuth as exc:
+            record_notification(
+                kind=CALENDAR_AUTH_REQUIRED,
+                title=f"Reconectar Google Calendar para {user.email}",
+                message=(
+                    "Falta el refresh token de Google. Cierra sesión y vuelve a "
+                    "iniciar sesión con esta cuenta para autorizar el calendario."
+                    if exc.reason == "no_refresh_token"
+                    else "Esta cuenta aún no ha conectado Google Calendar."
+                ),
+                severity=Notification.SEVERITY_ERROR,
+                payload={
+                    "appointment_id": appointment.pk,
+                    "user_id": user.pk,
+                    "action": ACTION_UPSERT,
+                    "reason": exc.reason,
+                },
+                user=user,
+                dedupe_key=dedupe_key,
+            )
+            continue
+        except Exception as exc:
+            logger.exception("Calendar sync failed for user %s", user.email)
+            record_notification(
+                kind=CALENDAR_SYNC_FAILED,
+                title=f"No se pudo sincronizar la cita con el calendario de {user.email}",
+                message=f"{appointment.title} — {exc}",
+                severity=Notification.SEVERITY_WARNING,
+                payload={
+                    "appointment_id": appointment.pk,
+                    "user_id": user.pk,
+                    "action": ACTION_UPSERT,
+                },
+                user=user,
+                dedupe_key=dedupe_key,
+            )
+            continue
+
+        mark_resolved(dedupe_key=dedupe_key)
         if new_id and new_id != existing:
             event_ids[str(user.pk)] = new_id
             changed = True
@@ -119,6 +266,15 @@ def sync_appointment(appointment):
 
 def delete_appointment_events(appointment):
     from apps.accounts.models import User
+    from apps.notifications.models import Notification
+    from apps.notifications.services import mark_resolved, record_notification
+
+    from .notification_kinds import (
+        ACTION_DELETE,
+        CALENDAR_AUTH_REQUIRED,
+        CALENDAR_SYNC_FAILED,
+        sync_dedupe_key,
+    )
 
     event_ids = appointment.google_calendar_event_ids or {}
     if not event_ids:
@@ -127,8 +283,49 @@ def delete_appointment_events(appointment):
     users = {str(u.pk): u for u in User.objects.filter(pk__in=event_ids.keys())}
     for user_pk, event_id in event_ids.items():
         user = users.get(user_pk)
-        if user:
-            try:
-                delete_event_for_user(user, event_id)
-            except Exception:
-                logger.exception("Failed to delete event %s for user %s", event_id, user_pk)
+        if not user:
+            continue
+        dedupe_key = sync_dedupe_key(appointment.pk, user.pk, ACTION_DELETE)
+        try:
+            delete_event_for_user(user, event_id)
+        except MissingCalendarAuth as exc:
+            record_notification(
+                kind=CALENDAR_AUTH_REQUIRED,
+                title=f"Reconectar Google Calendar para {user.email}",
+                message=(
+                    "Falta el refresh token de Google. Cierra sesión y vuelve a "
+                    "iniciar sesión con esta cuenta."
+                    if exc.reason == "no_refresh_token"
+                    else "Esta cuenta aún no ha conectado Google Calendar."
+                ),
+                severity=Notification.SEVERITY_ERROR,
+                payload={
+                    "appointment_id": appointment.pk,
+                    "user_id": user.pk,
+                    "event_id": event_id,
+                    "action": ACTION_DELETE,
+                    "reason": exc.reason,
+                },
+                user=user,
+                dedupe_key=dedupe_key,
+            )
+            continue
+        except Exception as exc:
+            logger.exception("Failed to delete event %s for user %s", event_id, user_pk)
+            record_notification(
+                kind=CALENDAR_SYNC_FAILED,
+                title=f"No se pudo borrar la cita en el calendario de {user.email}",
+                message=str(exc),
+                severity=Notification.SEVERITY_WARNING,
+                payload={
+                    "appointment_id": appointment.pk,
+                    "user_id": user.pk,
+                    "event_id": event_id,
+                    "action": ACTION_DELETE,
+                },
+                user=user,
+                dedupe_key=dedupe_key,
+            )
+            continue
+
+        mark_resolved(dedupe_key=dedupe_key)

@@ -12,6 +12,7 @@ urlpatterns = [
     path("appointments/", include("apps.appointments.urls")),
     path("files/", include("apps.files.urls")),
     path("baby/", include("apps.baby.urls")),
+    path("notifications/", include("apps.notifications.urls")),
     path("forbidden/", forbidden, name="forbidden"),
     path("privacy/", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
     path("", dashboard, name="dashboard"),

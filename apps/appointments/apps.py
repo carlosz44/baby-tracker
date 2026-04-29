@@ -8,3 +8,4 @@ class AppointmentsConfig(AppConfig):
 
     def ready(self):
         import apps.appointments.signals  # noqa: F401
+        import apps.appointments.notification_handlers  # noqa: F401

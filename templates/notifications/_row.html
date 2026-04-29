@@ -1,0 +1,75 @@
+{% load static %}
+<div id="notification-{{ n.pk }}"
+     class="bg-white dark:bg-zinc-800 rounded-xl border shadow-sm p-4
+            {% if n.severity == 'error' %}border-red-200 dark:border-red-500/30{% elif n.severity == 'warning' %}border-yellow-200 dark:border-yellow-500/30{% else %}border-slate-200 dark:border-zinc-700{% endif %}">
+  <div class="flex items-start justify-between gap-4">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs px-2 py-0.5 rounded-full
+                     {% if n.severity == 'error' %}bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300
+                     {% elif n.severity == 'warning' %}bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300
+                     {% else %}bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300{% endif %}">
+          {{ n.get_severity_display }}
+        </span>
+        <span class="text-xs text-slate-400 dark:text-zinc-500">{{ n.kind }}</span>
+        {% if n.attempts > 1 %}
+        <span class="text-xs text-slate-400 dark:text-zinc-500">· {{ n.attempts }} intentos</span>
+        {% endif %}
+      </div>
+      <h3 class="font-medium text-slate-700 dark:text-zinc-200 break-words">{{ n.title }}</h3>
+      {% if n.message %}
+      <p class="text-sm text-slate-500 dark:text-zinc-400 mt-1 whitespace-pre-line">{{ n.message }}</p>
+      {% endif %}
+      <p class="text-xs text-slate-400 dark:text-zinc-500 mt-2">
+        {{ n.created_at|date:"d M Y · H:i" }}
+        {% if n.last_attempted_at and n.last_attempted_at != n.created_at %}
+          · último intento {{ n.last_attempted_at|date:"d M H:i" }}
+        {% endif %}
+        {% if n.resolved_at %}
+          · resuelta {{ n.resolved_at|date:"d M H:i" }}
+        {% endif %}
+      </p>
+
+      {% if flash == 'success' %}
+        <p class="text-xs text-green-600 dark:text-green-400 mt-2">Reintento correcto.</p>
+      {% elif flash == 'failed' %}
+        <p class="text-xs text-red-600 dark:text-red-400 mt-2">El reintento falló. Revisa los detalles.</p>
+      {% elif flash == 'no_handler' %}
+        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-2">Esta notificación no se puede reintentar automáticamente.</p>
+      {% elif flash == 'already_resolved' %}
+        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-2">Ya estaba resuelta.</p>
+      {% endif %}
+    </div>
+
+    {% if not n.resolved_at %}
+    <div class="flex flex-col items-end gap-2 shrink-0">
+      {% if n.has_retry %}
+      <form method="post"
+            action="{% url 'notification_retry' n.pk %}"
+            hx-post="{% url 'notification_retry' n.pk %}"
+            hx-target="#notification-{{ n.pk }}"
+            hx-swap="outerHTML"
+            hx-disabled-elt="find button">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-xs bg-rose-500 hover:bg-rose-600 text-white font-medium py-1.5 px-3 rounded-lg transition disabled:opacity-50">
+          Reintentar
+        </button>
+      </form>
+      {% endif %}
+      <form method="post"
+            action="{% url 'notification_dismiss' n.pk %}"
+            hx-post="{% url 'notification_dismiss' n.pk %}"
+            hx-target="#notification-{{ n.pk }}"
+            hx-swap="outerHTML"
+            hx-confirm="¿Descartar esta notificación?">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-xs text-slate-400 hover:text-red-500">
+          Descartar
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>

@@ -153,6 +153,30 @@
           </svg>
           Plan de Parto
         </a>
+        <a
+          href="/notifications/"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if '/notifications' in current %}bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700{% endif %}"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            />
+          </svg>
+          <span class="flex-1">Notificaciones</span>
+          {% if unresolved_notifications_count %}
+          <span class="text-xs px-2 py-0.5 rounded-full bg-rose-500 text-white">
+            {{ unresolved_notifications_count }}
+          </span>
+          {% endif %}
+        </a>
         {% endwith %}
       </nav>
 
@@ -411,6 +435,30 @@
           />
         </svg>
         Pataditas
+      </a>
+      <a
+        href="/notifications/"
+        class="relative flex flex-col items-center gap-0.5 text-xs {% if '/notifications' in current %}text-rose-500 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+          />
+        </svg>
+        Avisos
+        {% if unresolved_notifications_count %}
+        <span class="absolute -top-1 right-1 min-w-[1rem] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] leading-4 text-center">
+          {{ unresolved_notifications_count }}
+        </span>
+        {% endif %}
       </a>
       {% endwith %}
     </nav>

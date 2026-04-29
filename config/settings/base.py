@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "apps.appointments",
     "apps.files",
     "apps.baby",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -64,6 +65,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.accounts.context_processors.debug_flag",
+                "apps.notifications.context_processors.notifications_badge",
             ],
         },
     },

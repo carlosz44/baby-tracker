@@ -1,0 +1,59 @@
+{% if not results %}
+<p class="text-sm text-slate-500 dark:text-zinc-400">No hay usuarios.</p>
+{% else %}
+<div class="space-y-3">
+  {% for r in results %}
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border shadow-sm p-4
+              {% if r.auth_status == 'missing' or r.api_ping == 'failed' %}border-red-200 dark:border-red-500/30
+              {% elif r.api_ping == 'ok' %}border-green-200 dark:border-green-500/30
+              {% else %}border-slate-200 dark:border-zinc-700{% endif %}">
+    <h3 class="font-medium text-slate-700 dark:text-zinc-200 mb-2">{{ r.email }}</h3>
+
+    {% if r.auth_status == 'missing' %}
+      <p class="text-sm text-red-600 dark:text-red-400">
+        Autenticación faltante: <code class="text-xs">{{ r.auth_reason }}</code>
+      </p>
+      {% if r.auth_reason == 'no_refresh_token' %}
+      <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+        Esta cuenta debe cerrar sesión y volver a iniciar sesión para reautorizar el calendario.
+      </p>
+      {% elif r.auth_reason == 'no_token' %}
+      <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+        Esta cuenta aún no ha conectado Google Calendar.
+      </p>
+      {% endif %}
+    {% else %}
+      <dl class="text-xs space-y-1 text-slate-600 dark:text-zinc-300">
+        <div class="flex gap-2">
+          <dt class="w-32 text-slate-400 dark:text-zinc-500">access_token</dt>
+          <dd>{% if r.access_token_present %}presente{% else %}<span class="text-red-500">vacío</span>{% endif %}</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="w-32 text-slate-400 dark:text-zinc-500">refresh_token</dt>
+          <dd>{% if r.refresh_token_present %}presente{% else %}<span class="text-red-500">vacío</span>{% endif %}</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="w-32 text-slate-400 dark:text-zinc-500">expires_at</dt>
+          <dd>{{ r.expires_at|default:"—" }}</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="w-32 text-slate-400 dark:text-zinc-500">api ping</dt>
+          <dd>
+            {% if r.api_ping == 'ok' %}
+              <span class="text-green-600 dark:text-green-400">ok ({{ r.calendar_count }} calendarios)</span>
+            {% else %}
+              <span class="text-red-600 dark:text-red-400">falló — {{ r.error }}</span>
+            {% endif %}
+          </dd>
+        </div>
+        {% if r.refreshed %}
+        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+          El access token se refrescó y se guardó durante esta comprobación.
+        </p>
+        {% endif %}
+      </dl>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
