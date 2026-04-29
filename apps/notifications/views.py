@@ -5,7 +5,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from apps.appointments.calendar_service import run_calendar_diagnostics
+from apps.appointments.calendar_service import (
+    resync_future_appointments,
+    run_calendar_diagnostics,
+)
 
 from .models import Notification
 from .registry import has_handler
@@ -77,6 +80,15 @@ def notification_diagnostics(request):
     results = run_calendar_diagnostics()
     return render(
         request, "notifications/_diagnostics.html", {"results": results}
+    )
+
+
+@login_required
+@require_POST
+def notification_resync(request):
+    summary = resync_future_appointments()
+    return render(
+        request, "notifications/_resync_result.html", {"summary": summary}
     )
 
 

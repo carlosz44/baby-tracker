@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -20,6 +21,40 @@ class MissingCalendarAuth(Exception):
     def __init__(self, reason: str):
         self.reason = reason
         super().__init__(reason)
+
+
+# User-facing messages for each reason a Google session can't be used.
+# Both the sync notification and the diagnostics page render from these.
+AUTH_REASON_MESSAGES = {
+    "no_token": "Esta cuenta aún no ha conectado Google Calendar.",
+    "no_refresh_token": (
+        "Falta el refresh token de Google. Cierra sesión y vuelve a "
+        "iniciar sesión con esta cuenta para autorizar el calendario."
+    ),
+    "invalid_scope": (
+        "La cuenta autorizó la app pero sin el permiso de Google Calendar. "
+        "Cierra sesión y vuelve a iniciar sesión, asegurándote de aprobar "
+        "el permiso de calendario."
+    ),
+    "refresh_failed": (
+        "Google rechazó el refresh token. Cierra sesión y vuelve a iniciar "
+        "sesión con esta cuenta."
+    ),
+}
+
+
+def auth_required_message(reason: str) -> str:
+    return AUTH_REASON_MESSAGES.get(
+        reason, "No se pudo autenticar con Google. Cierra sesión y vuelve a iniciar sesión."
+    )
+
+
+def _classify_refresh_error(exc: RefreshError) -> str:
+    """Map a google-auth RefreshError to a MissingCalendarAuth reason."""
+    text = str(exc).lower()
+    if "invalid_scope" in text:
+        return "invalid_scope"
+    return "refresh_failed"
 
 
 def _get_oauth_app():
@@ -80,6 +115,32 @@ def get_calendar_service(user):
     return service, token, credentials
 
 
+def resync_future_appointments() -> dict:
+    """Re-run sync_appointment for every appointment whose date is now-or-future.
+
+    Returns a summary dict: {appointments: N, missing_event_for_user: M, errors: K}.
+    Intended for the "Resincronizar todas las citas" UI action — covers users
+    that were missing events for older appointments after re-authenticating.
+    """
+    from django.utils import timezone
+
+    from .models import Appointment
+
+    now = timezone.now()
+    appointments = list(Appointment.objects.filter(date__gte=now))
+    summary = {
+        "appointments": len(appointments),
+        "errors": 0,
+    }
+    for appointment in appointments:
+        try:
+            sync_appointment(appointment)
+        except Exception:
+            logger.exception("Resync failed for appointment %s", appointment.pk)
+            summary["errors"] += 1
+    return summary
+
+
 def run_calendar_diagnostics() -> list[dict]:
     """Per-user calendar auth + API ping report.
 
@@ -119,6 +180,12 @@ def run_calendar_diagnostics() -> list[dict]:
             if credentials.token and credentials.token != original_token:
                 _persist_refreshed_credentials(token, credentials)
                 result["refreshed"] = True
+        except RefreshError as e:
+            reason = _classify_refresh_error(e)
+            result["auth_status"] = "missing"
+            result["auth_reason"] = reason
+            result["error"] = auth_required_message(reason)
+            result["raw_error"] = f"{type(e).__name__}: {e}"
         except HttpError as e:
             result["api_ping"] = "failed"
             result["error"] = f"{e.resp.status} {e.reason}"
@@ -175,6 +242,8 @@ def upsert_event_for_user(appointment, user, event_id=None):
         else:
             event = service.events().insert(calendarId="primary", body=body).execute()
         return event.get("id")
+    except RefreshError as e:
+        raise MissingCalendarAuth(_classify_refresh_error(e)) from e
     finally:
         _persist_refreshed_credentials(token, credentials)
 
@@ -190,6 +259,8 @@ def delete_event_for_user(user, event_id):
                 logger.info("Event %s already gone for user %s", event_id, user.email)
             else:
                 raise
+    except RefreshError as e:
+        raise MissingCalendarAuth(_classify_refresh_error(e)) from e
     finally:
         _persist_refreshed_credentials(token, credentials)
 
@@ -219,12 +290,7 @@ def sync_appointment(appointment):
             record_notification(
                 kind=CALENDAR_AUTH_REQUIRED,
                 title=f"Reconectar Google Calendar para {user.email}",
-                message=(
-                    "Falta el refresh token de Google. Cierra sesión y vuelve a "
-                    "iniciar sesión con esta cuenta para autorizar el calendario."
-                    if exc.reason == "no_refresh_token"
-                    else "Esta cuenta aún no ha conectado Google Calendar."
-                ),
+                message=auth_required_message(exc.reason),
                 severity=Notification.SEVERITY_ERROR,
                 payload={
                     "appointment_id": appointment.pk,
@@ -292,12 +358,7 @@ def delete_appointment_events(appointment):
             record_notification(
                 kind=CALENDAR_AUTH_REQUIRED,
                 title=f"Reconectar Google Calendar para {user.email}",
-                message=(
-                    "Falta el refresh token de Google. Cierra sesión y vuelve a "
-                    "iniciar sesión con esta cuenta."
-                    if exc.reason == "no_refresh_token"
-                    else "Esta cuenta aún no ha conectado Google Calendar."
-                ),
+                message=auth_required_message(exc.reason),
                 severity=Notification.SEVERITY_ERROR,
                 payload={
                     "appointment_id": appointment.pk,

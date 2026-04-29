@@ -36,6 +36,35 @@
     <div id="diagnostics-result" class="mt-3"></div>
   </div>
 
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-700 dark:text-zinc-200">Resincronizar citas futuras</h2>
+        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+          Vuelve a sincronizar todas las citas futuras con los calendarios de Google de ambos usuarios.
+          Útil después de reconectar una cuenta.
+        </p>
+      </div>
+      <form method="post"
+            action="{% url 'notification_resync' %}"
+            hx-post="{% url 'notification_resync' %}"
+            hx-target="#resync-result"
+            hx-swap="innerHTML"
+            hx-indicator="#resync-spinner"
+            hx-disabled-elt="find button">
+        {% csrf_token %}
+        <button type="submit"
+                class="inline-flex items-center justify-center bg-slate-700 hover:bg-slate-800 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition shrink-0 disabled:opacity-50">
+          Resincronizar
+        </button>
+      </form>
+    </div>
+    <div id="resync-spinner" class="htmx-indicator mt-3 text-xs text-slate-500 dark:text-zinc-400">
+      Sincronizando…
+    </div>
+    <div id="resync-result" class="mt-3"></div>
+  </div>
+
   <div>
     <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100 mb-3">
       Pendientes

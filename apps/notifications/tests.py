@@ -231,3 +231,67 @@ def test_dismiss_marks_resolved(client):
     assert response.status_code == 302
     n.refresh_from_db()
     assert n.resolved_at is not None
+
+
+# ── refresh error classification ────────────────────────────────────────────
+
+
+def test_classify_refresh_error_invalid_scope():
+    from google.auth.exceptions import RefreshError
+
+    from apps.appointments.calendar_service import _classify_refresh_error
+
+    err = RefreshError("invalid_scope: Bad Request", {"error": "invalid_scope"})
+    assert _classify_refresh_error(err) == "invalid_scope"
+
+
+def test_classify_refresh_error_other():
+    from google.auth.exceptions import RefreshError
+
+    from apps.appointments.calendar_service import _classify_refresh_error
+
+    err = RefreshError("invalid_grant", {"error": "invalid_grant"})
+    assert _classify_refresh_error(err) == "refresh_failed"
+
+
+@pytest.mark.django_db
+def test_resync_future_appointments_only_touches_future(user):
+    from datetime import timedelta
+
+    from apps.appointments.calendar_service import resync_future_appointments
+
+    past = Appointment.objects.create(
+        title="Past", appointment_type="other",
+        date=timezone.now() - timedelta(days=2),
+    )
+    future_a = Appointment.objects.create(
+        title="Future A", appointment_type="other",
+        date=timezone.now() + timedelta(days=1),
+    )
+    future_b = Appointment.objects.create(
+        title="Future B", appointment_type="other",
+        date=timezone.now() + timedelta(days=7),
+    )
+
+    seen = []
+    with patch(
+        "apps.appointments.calendar_service.upsert_event_for_user",
+        side_effect=lambda appt, user, event_id=None: seen.append(appt.pk) or "ev-id",
+    ):
+        summary = resync_future_appointments()
+
+    assert summary["appointments"] == 2
+    assert summary["errors"] == 0
+    assert past.pk not in seen
+    assert future_a.pk in seen
+    assert future_b.pk in seen
+
+
+def test_auth_required_message_dispatches_by_reason():
+    from apps.appointments.calendar_service import auth_required_message
+
+    assert "permiso de Google Calendar" in auth_required_message("invalid_scope")
+    assert "refresh token" in auth_required_message("no_refresh_token")
+    assert "no ha conectado" in auth_required_message("no_token")
+    # Unknown reason falls through to default
+    assert auth_required_message("totally_unknown")

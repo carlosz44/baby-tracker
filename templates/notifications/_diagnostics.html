@@ -13,14 +13,11 @@
       <p class="text-sm text-red-600 dark:text-red-400">
         Autenticación faltante: <code class="text-xs">{{ r.auth_reason }}</code>
       </p>
-      {% if r.auth_reason == 'no_refresh_token' %}
-      <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-        Esta cuenta debe cerrar sesión y volver a iniciar sesión para reautorizar el calendario.
-      </p>
-      {% elif r.auth_reason == 'no_token' %}
-      <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-        Esta cuenta aún no ha conectado Google Calendar.
-      </p>
+      {% if r.error %}
+      <p class="text-xs text-slate-600 dark:text-zinc-300 mt-1">{{ r.error }}</p>
+      {% endif %}
+      {% if r.raw_error %}
+      <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1 font-mono break-all">{{ r.raw_error }}</p>
       {% endif %}
     {% else %}
       <dl class="text-xs space-y-1 text-slate-600 dark:text-zinc-300">

@@ -1,0 +1,8 @@
+{% if summary.appointments == 0 %}
+<p class="text-sm text-slate-500 dark:text-zinc-400">No hay citas futuras para resincronizar.</p>
+{% else %}
+<p class="text-sm
+   {% if summary.errors %}text-yellow-700 dark:text-yellow-300{% else %}text-green-700 dark:text-green-300{% endif %}">
+  Procesadas {{ summary.appointments }} citas{% if summary.errors %} · {{ summary.errors }} con errores. Revisa las notificaciones pendientes.{% else %}.{% endif %}
+</p>
+{% endif %}
