@@ -221,6 +221,24 @@ fi
 systemctl enable --now "$SERVICE_NAME"
 systemctl restart "$SERVICE_NAME"
 
+# ─── Nightly DB backup cron ───────────────────────────────────────────────────
+CRON_FILE=/etc/cron.d/baby-tracker-backup
+BACKUP_LOG=/var/log/baby-tracker-backup.log
+if [ ! -f "$CRON_FILE" ]; then
+  log "Installing nightly DB backup cron (3am UTC → R2 db-backups/, keeps 30 days)"
+  cat > "$CRON_FILE" <<EOF
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 3 * * * $DEPLOY_USER $APP_DIR/scripts/backup_db.sh >> $BACKUP_LOG 2>&1
+EOF
+  chmod 644 "$CRON_FILE"
+fi
+
+if [ ! -f "$BACKUP_LOG" ]; then
+  touch "$BACKUP_LOG"
+  chown "$DEPLOY_USER:$DEPLOY_USER" "$BACKUP_LOG"
+fi
+
 # ─── Nginx ────────────────────────────────────────────────────────────────────
 NGINX_CONF="/etc/nginx/sites-available/baby-tracker"
 if [ ! -f "$NGINX_CONF" ]; then

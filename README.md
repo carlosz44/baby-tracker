@@ -183,6 +183,18 @@ Production uses `ManifestStaticFilesStorage`: `collectstatic` renames files to `
    AWS_S3_REGION_NAME=auto
    ```
 
+### Nightly DB backups to R2
+
+`scripts/backup_db.sh` runs nightly via `/etc/cron.d/baby-tracker-backup` (installed by `bootstrap-vps.sh`). It `pg_dump`s the production database (`-Fc` custom format), uploads to R2 under `db-backups/babytracker-YYYY-MM-DD.dump`, and prunes anything older than 30 days. Logs to `/var/log/baby-tracker-backup.log`.
+
+Test once after bootstrap: `sudo -u deploy /var/www/baby-tracker/scripts/backup_db.sh` (you should see an `uploaded db-backups/...` line and a new object in the R2 bucket).
+
+To restore on a fresh VPS after re-running bootstrap:
+```bash
+# Download the most recent dump from R2 (via rclone, awscli, or Cloudflare dashboard)
+sudo -u postgres pg_restore -d babytracker --clean --if-exists babytracker-YYYY-MM-DD.dump
+```
+
 ### TrueNAS Cloud Sync (Nightly R2 Backup)
 
 To back up R2 files to your local TrueNAS:
@@ -193,11 +205,13 @@ To back up R2 files to your local TrueNAS:
    - Access Key / Secret Key from R2 API token
 2. Data Protection → Cloud Sync Tasks → Add
    - Direction: PULL
-   - Transfer mode: SYNC
+   - Transfer mode: SYNC (mirrors R2 — files deleted from R2 also disappear from TrueNAS) or COPY (additive — old DB dumps survive past 30 days; use this if you want longer retention than R2's prune window)
    - Remote: your R2 credential, bucket `baby-tracker`
    - Local: target dataset path (e.g., `/mnt/pool/backups/baby-tracker`)
-   - Schedule: Daily at 3:00 AM
+   - Schedule: Daily at 3:30 AM (after the DB-dump cron at 3:00 AM)
 3. Test the task with "Dry Run", then save
+
+The bucket holds two prefixes: `pregnancy-files/` (user uploads) and `db-backups/` (nightly Postgres dumps). The sync pulls both.
 
 ## Google Cloud Console Setup
 
