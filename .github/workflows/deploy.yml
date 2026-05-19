@@ -51,6 +51,18 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
 
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+      ALLOWED_LOGIN_EMAILS: ${{ secrets.ALLOWED_LOGIN_EMAILS }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
+      AWS_S3_ENDPOINT_URL: ${{ secrets.AWS_S3_ENDPOINT_URL }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
     steps:
       - uses: actions/checkout@v5
 
@@ -64,7 +76,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "static/css/output.css"
           target: "/var/www/baby-tracker/static/css/"
@@ -74,11 +86,28 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: SECRET_KEY,ALLOWED_HOSTS,ALLOWED_LOGIN_EMAILS,DATABASE_URL,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_ENDPOINT_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
             cd /var/www/baby-tracker
             git pull origin main
+            umask 077
+            cat > .env <<EOF
+            SECRET_KEY=$SECRET_KEY
+            DEBUG=False
+            ALLOWED_HOSTS=$ALLOWED_HOSTS
+            ALLOWED_LOGIN_EMAILS=$ALLOWED_LOGIN_EMAILS
+            DATABASE_URL=$DATABASE_URL
+            AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME
+            AWS_S3_ENDPOINT_URL=$AWS_S3_ENDPOINT_URL
+            AWS_S3_REGION_NAME=auto
+            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+            DJANGO_SETTINGS_MODULE=config.settings.production
+            EOF
             source venv/bin/activate
             set -a
             source .env
@@ -87,4 +116,4 @@ jobs:
             python manage.py migrate --no-input
             touch static/css/output.css
             python manage.py collectstatic --no-input --clear --ignore="input.css"
-            sudo systemctl restart gunicorn-baby
+            sudo systemctl restart gunicorn-baby-tracker

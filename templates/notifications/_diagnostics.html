@@ -37,7 +37,7 @@
           <dt class="w-32 text-slate-400 dark:text-zinc-500">api ping</dt>
           <dd>
             {% if r.api_ping == 'ok' %}
-              <span class="text-green-600 dark:text-green-400">ok ({{ r.calendar_count }} calendarios)</span>
+              <span class="text-green-600 dark:text-green-400">ok ({{ r.calendar_count }} calendario{{ r.calendar_count|pluralize }})</span>
             {% else %}
               <span class="text-red-600 dark:text-red-400">falló — {{ r.error }}</span>
             {% endif %}

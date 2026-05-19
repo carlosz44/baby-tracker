@@ -5,13 +5,12 @@
 # PostgreSQL + Nginx + Gunicorn + Let's Encrypt, clones the repo, creates
 # the .env, runs migrations, and enables the systemd service.
 #
-# Run ONCE on a fresh VPS as root (or with sudo). Clone the repo first,
-# then either copy `scripts/bootstrap.env.example` to `scripts/bootstrap.env`
-# and fill it in, or pass values as env vars:
-#   sudo -E bash scripts/bootstrap-vps.sh
+# Run ONCE on a fresh VPS as root (or with sudo) from inside a checked-out
+# copy of this repo. REPO_URL is auto-detected from `git remote get-url origin`.
+# Any unset required values are prompted for interactively, or can be passed
+# as env vars:
 #
-# REPO_URL is auto-detected from the checked-out repo. Any missing required
-# values will be prompted for interactively.
+#   sudo -E bash scripts/bootstrap-vps.sh
 #
 # Safe to re-run: each step checks whether it's already done.
 
@@ -19,27 +18,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# ─── Config ───────────────────────────────────────────────────────────────────
-# Precedence: existing shell env vars > scripts/bootstrap.env > scripts/bootstrap.env.example
-# Each file-loader only sets vars that aren't already set, so callers can
-# override anything with `FOO=bar sudo -E bash scripts/bootstrap-vps.sh`.
-load_env_file() {
-  local file="$1"
-  [ -f "$file" ] || return 0
-  while IFS='=' read -r key value; do
-    [[ "$key" =~ ^[[:space:]]*(#|$) ]] && continue
-    key="${key// /}"
-    value="${value%\"}"; value="${value#\"}"
-    value="${value%\'}"; value="${value#\'}"
-    if [ -z "${!key:-}" ]; then
-      export "$key=$value"
-    fi
-  done < "$file"
-  return 0
-}
-
-load_env_file "$SCRIPT_DIR/bootstrap.env"
-load_env_file "$SCRIPT_DIR/bootstrap.env.example"
+# ─── Constants ────────────────────────────────────────────────────────────────
+DEPLOY_USER=deploy
+PYTHON_BIN=python3
+APP_DIR=/var/www/baby-tracker
+DB_NAME=babytracker
+DB_USER=baby
+R2_BUCKET=baby-tracker
+SERVICE_NAME=gunicorn-baby-tracker
 
 # Auto-detect REPO_URL from the checked-out repo if not set.
 if [ -z "${REPO_URL:-}" ] && git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
@@ -53,7 +39,7 @@ die()  { echo -e "\033[1;31mXX\033[0m  $*" >&2; exit 1; }
 
 prompt() {
   local var="$1" message="$2" secret="${3:-false}"
-  if [ -z "${!var}" ]; then
+  if [ -z "${!var:-}" ]; then
     if [ "$secret" = "true" ]; then
       read -rsp "$message: " "$var"; echo
     else
@@ -66,13 +52,13 @@ prompt() {
 # ─── Preflight ────────────────────────────────────────────────────────────────
 [ "$EUID" -eq 0 ] || die "Run as root (or with sudo)"
 command -v apt-get >/dev/null || die "This script only supports Debian/Ubuntu"
+[ -n "${REPO_URL:-}" ] || die "REPO_URL could not be auto-detected — run from inside a checked-out repo or pass REPO_URL=..."
 
 log "Baby Tracker VPS bootstrap"
 echo
 
 prompt DOMAIN "Subdomain (e.g. bb.example.com)"
 prompt EMAIL "Email for Let's Encrypt notices"
-prompt REPO_URL "Git repo URL to clone"
 prompt ALLOWED_EMAILS "Allowed login emails (comma-separated)"
 prompt GOOGLE_CLIENT_ID "Google OAuth Client ID"
 prompt GOOGLE_CLIENT_SECRET "Google OAuth Client Secret" true
@@ -80,7 +66,7 @@ prompt R2_ACCESS_KEY "R2 Access Key ID"
 prompt R2_SECRET_KEY "R2 Secret Access Key" true
 prompt R2_ENDPOINT "R2 endpoint URL (https://<account>.r2.cloudflarestorage.com)"
 
-if [ -z "$DB_PASSWORD" ]; then
+if [ -z "${DB_PASSWORD:-}" ]; then
   DB_PASSWORD="$(openssl rand -base64 24 | tr -d '+/=' | head -c 32)"
   log "Generated DB password (stored in .env on server)"
 fi
@@ -117,8 +103,8 @@ fi
 # Sudoers: allow gunicorn restart without password (for CI)
 SUDOERS_FILE="/etc/sudoers.d/baby-tracker-deploy"
 if [ ! -f "$SUDOERS_FILE" ]; then
-  log "Allowing '$DEPLOY_USER' to restart gunicorn without password"
-  echo "$DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart gunicorn-baby" > "$SUDOERS_FILE"
+  log "Allowing '$DEPLOY_USER' to restart $SERVICE_NAME without password"
+  echo "$DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart $SERVICE_NAME" > "$SUDOERS_FILE"
   chmod 440 "$SUDOERS_FILE"
 fi
 
@@ -207,9 +193,9 @@ Site.objects.update_or_create(id=1, defaults={'domain': '$DOMAIN', 'name': 'Baby
 \""
 
 # ─── Gunicorn systemd service ─────────────────────────────────────────────────
-SERVICE_FILE="/etc/systemd/system/gunicorn-baby.service"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 if [ ! -f "$SERVICE_FILE" ]; then
-  log "Creating gunicorn-baby systemd service…"
+  log "Creating $SERVICE_NAME systemd service…"
   cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=Baby Tracker Gunicorn
@@ -232,8 +218,8 @@ EOF
   systemctl daemon-reload
 fi
 
-systemctl enable --now gunicorn-baby
-systemctl restart gunicorn-baby
+systemctl enable --now "$SERVICE_NAME"
+systemctl restart "$SERVICE_NAME"
 
 # ─── Nginx ────────────────────────────────────────────────────────────────────
 NGINX_CONF="/etc/nginx/sites-available/baby-tracker"
@@ -292,12 +278,17 @@ echo
 echo "  App URL:     https://$DOMAIN"
 echo "  App dir:     $APP_DIR"
 echo "  Deploy user: $DEPLOY_USER"
+echo "  Service:     $SERVICE_NAME"
 echo "  DB:          postgres://$DB_USER:***@localhost:5432/$DB_NAME"
 echo
 echo "Next steps (manual):"
 echo "  1. Create a superuser:"
 echo "       sudo -u $DEPLOY_USER bash -c 'cd $APP_DIR && set -a && source .env && set +a && venv/bin/python manage.py createsuperuser'"
 echo "  2. Add https://$DOMAIN/accounts/google/login/callback/ to your Google OAuth redirect URIs"
-echo "  3. Add GitHub secrets: VPS_HOST, VPS_USER=$DEPLOY_USER, VPS_SSH_KEY (deploy SSH private key)"
+echo "  3. Add GitHub Secrets so CI can deploy and rewrite .env:"
+echo "       VPS_HOST, VPS_SSH_KEY, SECRET_KEY, ALLOWED_HOSTS, ALLOWED_LOGIN_EMAILS,"
+echo "       DATABASE_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,"
+echo "       AWS_STORAGE_BUCKET_NAME, AWS_S3_ENDPOINT_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET"
+echo "     (copy current values from $ENV_FILE)"
 echo "  4. Point DNS A record for $DOMAIN to this server's IP"
 echo "  5. Visit https://$DOMAIN and log in via Google"

@@ -12,6 +12,7 @@ Built with Django, HTMX, Tailwind CSS, PostgreSQL, and Cloudflare R2.
 - **Weekly Logs** — Track weight, blood pressure, symptoms, mood per pregnancy week
 - **Kick Counter** — Log daily kick count sessions with duration tracking
 - **Birth Plan** — Write and edit your birth preferences
+- **Notifications & Diagnostics** — Calendar sync failures (e.g. expired Google grant, missing calendar permission) surface as retryable notifications at `/notifications/`, with live per-user auth diagnostics and a one-click resync for future appointments
 - **Google OAuth SSO** — Login restricted to a whitelist of 2 Gmail addresses
 - **Dark Mode** — Toggle with localStorage persistence, no flash on reload
 - **Mobile-first** — Bottom nav on mobile, sidebar on desktop
@@ -115,6 +116,7 @@ Open http://localhost:8000 — you'll be redirected to Google OAuth login.
 | `AWS_S3_REGION_NAME` | S3 region (use `auto` for R2) | `auto` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | `123...apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `GOCSPX-...` |
+| `DJANGO_SETTINGS_MODULE` | Settings module (`config.settings.local` or `.production`) | `config.settings.local` |
 
 ## Running Tests
 
@@ -126,17 +128,15 @@ docker compose exec web pytest
 
 ### One-shot VPS provisioning
 
-`scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: apt packages, Postgres, Nginx, systemd, Certbot, UFW, the `deploy` user with narrowly-scoped `NOPASSWD` sudo, the `.env` file, migrations, and the `gunicorn-baby` service. It's idempotent — safe to re-run.
+`scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: apt packages, Postgres, Nginx, systemd, Certbot, UFW, the `deploy` user with narrowly-scoped `NOPASSWD` sudo, the `.env` file, migrations, and the `gunicorn-baby-tracker` service. It's idempotent — safe to re-run.
 
 ```bash
-# On the VPS, after cloning the repo to /tmp:
+# On the VPS, clone the repo to /tmp, then:
 cd /tmp/baby-tracker
-cp scripts/bootstrap.env.example scripts/bootstrap.env
-$EDITOR scripts/bootstrap.env      # fill in DOMAIN, EMAIL, OAuth, R2, etc.
 sudo -E bash scripts/bootstrap-vps.sh
 ```
 
-Values not set in `scripts/bootstrap.env` are prompted for interactively. See `scripts/bootstrap.env.example` for the full list (`DOMAIN`, `EMAIL`, `ALLOWED_EMAILS`, `GOOGLE_CLIENT_ID/SECRET`, `R2_ACCESS_KEY/SECRET/ENDPOINT`, plus optional overrides).
+`REPO_URL` is auto-detected from `git remote get-url origin`. The script prompts interactively for the values it needs (`DOMAIN`, `EMAIL`, `ALLOWED_EMAILS`, `GOOGLE_CLIENT_ID/SECRET`, `R2_ACCESS_KEY/SECRET/ENDPOINT`); pre-export them as env vars to skip the prompts.
 
 Heads-up for tiny VPSes (≤1GB RAM): add a swap file before running bootstrap, otherwise the kernel OOM-kills processes. `fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile`, then add `/swapfile none swap sw 0 0` to `/etc/fstab`.
 
@@ -145,12 +145,26 @@ Heads-up for tiny VPSes (≤1GB RAM): add a swap file before running bootstrap, 
 `.github/workflows/deploy.yml`:
 1. On push to `main`, runs `pytest` against a Postgres service container.
 2. On success, downloads the Tailwind CLI on the GitHub runner, builds `output.css --minify`, and `scp`s it to the VPS (Tailwind can't build on a 1GB VPS without OOM).
-3. SSHes in, `git pull`, sources `.env` (so `DJANGO_SETTINGS_MODULE=production`), `pip install`, `migrate`, `touch` + `collectstatic --clear --ignore="input.css"`, restart gunicorn.
+3. SSHes in, `git pull`, rewrites `/var/www/baby-tracker/.env` from GitHub Secrets (so updating a secret propagates on the next deploy), sources it, `pip install`, `migrate`, `touch` + `collectstatic --clear --ignore="input.css"`, restarts `gunicorn-baby-tracker`.
 
 Required GitHub Secrets:
-- `VPS_HOST` — Server IP or hostname
-- `VPS_USER` — SSH username (`deploy`)
-- `VPS_SSH_KEY` — Private SSH key for the deploy user
+
+| Secret | Description |
+|---|---|
+| `VPS_HOST` | Server IP or hostname |
+| `VPS_SSH_KEY` | Private SSH key for the `deploy` user |
+| `SECRET_KEY` | Django secret key |
+| `ALLOWED_HOSTS` | Comma-separated hostnames |
+| `ALLOWED_LOGIN_EMAILS` | Whitelisted Gmail addresses |
+| `DATABASE_URL` | `postgres://baby:<pwd>@localhost:5432/babytracker` |
+| `AWS_ACCESS_KEY_ID` | R2 access key |
+| `AWS_SECRET_ACCESS_KEY` | R2 secret key |
+| `AWS_STORAGE_BUCKET_NAME` | Bucket name (e.g. `baby-tracker`) |
+| `AWS_S3_ENDPOINT_URL` | `https://<account>.r2.cloudflarestorage.com` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+
+To seed these after running `bootstrap-vps.sh`, SSH in as `deploy` and copy values from `/var/www/baby-tracker/.env` into GitHub → Settings → Secrets and variables → Actions. `DEBUG=False`, `AWS_S3_REGION_NAME=auto`, and `DJANGO_SETTINGS_MODULE=config.settings.production` are hardcoded by the workflow and don't need secrets.
 
 ### Static file caching
 
