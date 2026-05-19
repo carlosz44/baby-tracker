@@ -60,7 +60,7 @@ def main() -> int:
         )
         size = dump_path.stat().st_size
         s3.upload_file(str(dump_path), bucket, key)
-        print(f"[{datetime.utcnow().isoformat()}Z] uploaded {key} ({size} bytes)")
+        print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}Z] uploaded {key} ({size} bytes)")
     finally:
         dump_path.unlink(missing_ok=True)
 
@@ -74,7 +74,7 @@ def main() -> int:
 
     if to_delete:
         s3.delete_objects(Bucket=bucket, Delete={"Objects": to_delete})
-        print(f"[{datetime.utcnow().isoformat()}Z] pruned {len(to_delete)} backups older than {KEEP_DAYS}d")
+        print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}Z] pruned {len(to_delete)} backups older than {KEEP_DAYS}d")
 
     return 0
 
