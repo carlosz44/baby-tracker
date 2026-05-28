@@ -89,6 +89,11 @@
             <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 overflow-hidden">
               <img src="{{ file.file.url }}" alt="{{ file.title }}" class="w-full h-full object-cover">
             </div>
+          {% elif file.is_pdf %}
+            <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 flex flex-col items-center justify-center gap-1">
+              <svg class="w-10 h-10 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span class="text-[10px] font-bold tracking-wider text-rose-500">PDF</span>
+            </div>
           {% else %}
             <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 flex items-center justify-center">
               <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>

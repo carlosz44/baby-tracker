@@ -68,6 +68,16 @@ def mark_resolved(*, dedupe_key: str) -> int:
     ).update(resolved_at=timezone.now())
 
 
+def dismiss_all_unresolved() -> int:
+    """Mark every unresolved notification as resolved.
+
+    Returns the number of rows updated.
+    """
+    return Notification.objects.filter(resolved_at__isnull=True).update(
+        resolved_at=timezone.now()
+    )
+
+
 def retry_notification(notification: Notification) -> bool:
     """Run the registered handler for this notification's kind.
 

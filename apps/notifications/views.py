@@ -12,7 +12,7 @@ from apps.appointments.calendar_service import (
 
 from .models import Notification
 from .registry import has_handler
-from .services import retry_notification
+from .services import dismiss_all_unresolved, retry_notification
 
 
 def _annotate(notifications):
@@ -104,4 +104,22 @@ def notification_dismiss(request, pk):
         return HttpResponse("")
 
     messages.success(request, "Notificación descartada.")
+    return redirect("notification_list")
+
+
+@login_required
+@require_POST
+def notification_dismiss_all(request):
+    count = dismiss_all_unresolved()
+
+    if request.htmx:
+        # Reload the page so badges and lists reflect the bulk update.
+        response = HttpResponse("")
+        response["HX-Refresh"] = "true"
+        return response
+
+    if count:
+        messages.success(request, f"{count} notificaciones descartadas.")
+    else:
+        messages.info(request, "No había notificaciones pendientes.")
     return redirect("notification_list")

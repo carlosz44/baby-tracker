@@ -66,14 +66,29 @@
   </div>
 
   <div>
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100 mb-3">
-      Pendientes
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">
+        Pendientes
+        {% if unresolved %}
+        <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
+          {{ unresolved|length }}
+        </span>
+        {% endif %}
+      </h2>
       {% if unresolved %}
-      <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
-        {{ unresolved|length }}
-      </span>
+      <form method="post"
+            action="{% url 'notification_dismiss_all' %}"
+            hx-post="{% url 'notification_dismiss_all' %}"
+            hx-confirm="¿Descartar todas las notificaciones pendientes?"
+            hx-disabled-elt="find button">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-xs bg-slate-200 hover:bg-slate-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-slate-700 dark:text-zinc-200 font-medium py-1.5 px-3 rounded-lg transition disabled:opacity-50">
+          Descartar todas
+        </button>
+      </form>
       {% endif %}
-    </h2>
+    </div>
     {% if unresolved %}
       <div id="unresolved-list" class="space-y-3">
         {% for n in unresolved %}

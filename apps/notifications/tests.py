@@ -19,6 +19,7 @@ from apps.appointments.notification_kinds import (
 from apps.notifications.models import Notification
 from apps.notifications.registry import register_handler
 from apps.notifications.services import (
+    dismiss_all_unresolved,
     mark_resolved,
     record_notification,
     retry_notification,
@@ -231,6 +232,50 @@ def test_dismiss_marks_resolved(client):
     assert response.status_code == 302
     n.refresh_from_db()
     assert n.resolved_at is not None
+
+
+@pytest.mark.django_db
+def test_dismiss_all_only_touches_unresolved():
+    a = record_notification(kind="t", title="a", dedupe_key="ka")
+    b = record_notification(kind="t", title="b", dedupe_key="kb")
+    already = record_notification(kind="t", title="c", dedupe_key="kc")
+    earlier = already.resolved_at = timezone.now()
+    already.save(update_fields=["resolved_at"])
+
+    count = dismiss_all_unresolved()
+
+    assert count == 2
+    a.refresh_from_db()
+    b.refresh_from_db()
+    already.refresh_from_db()
+    assert a.resolved_at is not None
+    assert b.resolved_at is not None
+    # Already-resolved row keeps its original timestamp.
+    assert already.resolved_at == earlier
+
+
+@pytest.mark.django_db
+def test_dismiss_all_view_resolves_and_redirects(client):
+    record_notification(kind="t", title="a", dedupe_key="ka")
+    record_notification(kind="t", title="b", dedupe_key="kb")
+
+    response = client.post("/notifications/dismiss-all/")
+
+    assert response.status_code == 302
+    assert Notification.objects.filter(resolved_at__isnull=True).count() == 0
+
+
+@pytest.mark.django_db
+def test_dismiss_all_view_returns_hx_refresh_for_htmx(client):
+    record_notification(kind="t", title="a", dedupe_key="ka")
+
+    response = client.post(
+        "/notifications/dismiss-all/", HTTP_HX_REQUEST="true"
+    )
+
+    assert response.status_code == 200
+    assert response["HX-Refresh"] == "true"
+    assert Notification.objects.filter(resolved_at__isnull=True).count() == 0
 
 
 # ── refresh error classification ────────────────────────────────────────────

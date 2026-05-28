@@ -6,7 +6,7 @@
 {% block content %}
 <div class="max-w-lg mx-auto">
   <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" data-upload-form>
       {% csrf_token %}
       <div class="space-y-4">
         {% for field in form %}
@@ -27,7 +27,10 @@
 
         <div class="flex gap-3 pt-2">
           <button type="submit"
-                  class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
+                  data-upload-submit
+                  data-label-idle="Subir"
+                  data-label-busy="Subiendo…"
+                  class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed">
             Subir
           </button>
           <a href="{% url 'file_list' %}"
@@ -37,6 +40,38 @@
         </div>
       </div>
     </form>
+
+    <script>
+      (function () {
+        const form = document.querySelector('form[data-upload-form]');
+        if (!form) return;
+        const btn = form.querySelector('[data-upload-submit]');
+        if (!btn) return;
+
+        form.addEventListener('submit', function (event) {
+          // Already submitted — prevent the second submit and bail.
+          if (btn.disabled) {
+            event.preventDefault();
+            return;
+          }
+          // Let the browser keep `name`-less disabled inputs out of the
+          // submission; disable on the next tick so this submit goes through.
+          setTimeout(function () {
+            btn.disabled = true;
+            const busy = btn.dataset.labelBusy;
+            if (busy) btn.textContent = busy;
+          }, 0);
+        });
+
+        // Bfcache: if the user hits "back" after a successful upload, the
+        // page may restore with the button still disabled. Re-enable it.
+        window.addEventListener('pageshow', function () {
+          btn.disabled = false;
+          const idle = btn.dataset.labelIdle;
+          if (idle) btn.textContent = idle;
+        });
+      })();
+    </script>
   </div>
 </div>
 {% endblock %}
