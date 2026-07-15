@@ -21,25 +21,26 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: root
+          username: admin
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            sudo -n bash <<'SCRIPT'
             set -euo pipefail
             export DEBIAN_FRONTEND=noninteractive
             command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
             apt-get install -y -qq fail2ban ufw
             id deploy &>/dev/null || adduser --disabled-password --gecos "" deploy
             usermod -aG docker deploy
-            if [ -f /root/.ssh/authorized_keys ] && [ ! -f /home/deploy/.ssh/authorized_keys ]; then
+            if [ -f /home/admin/.ssh/authorized_keys ] && [ ! -f /home/deploy/.ssh/authorized_keys ]; then
               mkdir -p /home/deploy/.ssh
-              cp /root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
+              cp /home/admin/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
               chown -R deploy:deploy /home/deploy/.ssh
               chmod 700 /home/deploy/.ssh
               chmod 600 /home/deploy/.ssh/authorized_keys
             fi
             mkdir -p /srv/baby-tracker
             chown deploy:deploy /srv/baby-tracker
-            cat > /etc/cron.d/baby-tracker-backup <<EOF
+            cat > /etc/cron.d/baby-tracker-backup <<'EOF'
             SHELL=/bin/bash
             PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             0 3 * * * deploy /srv/baby-tracker/backup_db.sh >> /var/log/baby-tracker-backup.log 2>&1
@@ -51,15 +52,17 @@ jobs:
             ufw allow 80/tcp
             ufw allow 443/tcp
             ufw --force enable
+            SCRIPT
 
       - name: Migrate legacy DB into container
         if: ${{ inputs.migrate_db }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: root
+          username: admin
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            sudo -n bash <<'SCRIPT'
             set -euo pipefail
             cd /srv/baby-tracker
             docker compose -f compose.prod.yml up -d db
@@ -76,17 +79,19 @@ jobs:
             sudo -u deploy bash /var/www/baby-tracker/scripts/backup_db.sh
             sudo -u postgres pg_dump -Fc --no-owner --no-acl babytracker \
               | docker compose -f compose.prod.yml exec -T db pg_restore -U baby -d babytracker --no-owner --no-acl
-            echo "Migration done. Row check:"
+            echo "Migration done. Table check:"
             docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'"
+            SCRIPT
 
       - name: Decommission legacy stack
         if: ${{ inputs.decommission_legacy }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: root
+          username: admin
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            sudo -n bash <<'SCRIPT'
             set -euo pipefail
             systemctl disable --now gunicorn-baby-tracker 2>/dev/null || true
             systemctl disable --now nginx 2>/dev/null || true
@@ -95,3 +100,4 @@ jobs:
             docker compose -f compose.prod.yml up -d
             docker compose -f compose.prod.yml restart caddy
             echo "Legacy stack stopped. /var/www/baby-tracker kept as cold backup."
+            SCRIPT
