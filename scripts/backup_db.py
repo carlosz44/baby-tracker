@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""Nightly Postgres dump → R2, with pruning.
+"""Nightly Postgres backup → R2, with pruning.
 
-Invoked by `scripts/backup_db.sh` (which sources `.env` first). Reads
-DATABASE_URL + R2 creds from env, runs `pg_dump -Fc` into a temp file,
-uploads under `db-backups/<dbname>-YYYY-MM-DD.dump`, then deletes anything
-older than KEEP_DAYS from the same prefix.
+Invoked by `deploy/backup_db.sh`: pg_dump runs in the db container and is
+piped in via `--stdin`. Uploads to `db-backups/<dbname>-YYYY-MM-DD.dump`,
+then deletes anything older than KEEP_DAYS from the same prefix.
 
 Restoration:
     pg_restore -h localhost -U baby -d babytracker --clean --if-exists <file>
 """
+import io
 import os
 import subprocess
 import sys
@@ -39,30 +39,40 @@ def main() -> int:
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     key = f"{PREFIX}/{db_name}-{stamp}.dump"
 
-    with tempfile.NamedTemporaryFile(suffix=".dump", delete=False) as f:
-        dump_path = Path(f.name)
+    if "--stdin" in sys.argv:
+        data = sys.stdin.buffer.read()
+        # PGDMP magic: refuse truncated/empty dumps from a failed pg_dump pipe
+        if len(data) < 512 or not data.startswith(b"PGDMP"):
+            print("stdin is not a valid pg_dump custom-format dump, aborting", file=sys.stderr)
+            return 1
+        s3.upload_fileobj(io.BytesIO(data), bucket, key)
+        print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}Z] uploaded {key} ({len(data)} bytes)")
+    else:
+        # Fallback: run pg_dump locally (needs pg client binaries)
+        with tempfile.NamedTemporaryFile(suffix=".dump", delete=False) as f:
+            dump_path = Path(f.name)
 
-    try:
-        subprocess.run(
-            [
-                "pg_dump",
-                "-h", db.hostname or "localhost",
-                "-p", str(db.port or 5432),
-                "-U", db.username or "",
-                "-d", db_name,
-                "-Fc",
-                "--no-owner",
-                "--no-acl",
-                "-f", str(dump_path),
-            ],
-            env={**os.environ, "PGPASSWORD": db.password or ""},
-            check=True,
-        )
-        size = dump_path.stat().st_size
-        s3.upload_file(str(dump_path), bucket, key)
-        print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}Z] uploaded {key} ({size} bytes)")
-    finally:
-        dump_path.unlink(missing_ok=True)
+        try:
+            subprocess.run(
+                [
+                    "pg_dump",
+                    "-h", db.hostname or "localhost",
+                    "-p", str(db.port or 5432),
+                    "-U", db.username or "",
+                    "-d", db_name,
+                    "-Fc",
+                    "--no-owner",
+                    "--no-acl",
+                    "-f", str(dump_path),
+                ],
+                env={**os.environ, "PGPASSWORD": db.password or ""},
+                check=True,
+            )
+            size = dump_path.stat().st_size
+            s3.upload_file(str(dump_path), bucket, key)
+            print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}Z] uploaded {key} ({size} bytes)")
+        finally:
+            dump_path.unlink(missing_ok=True)
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=KEEP_DAYS)
     to_delete = []

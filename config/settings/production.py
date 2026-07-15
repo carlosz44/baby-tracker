@@ -13,6 +13,9 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# WhiteNoise serves static from inside the container (Caddy is a pure proxy)
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
+
 STORAGES["staticfiles"]["BACKEND"] = (
-    "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
 )

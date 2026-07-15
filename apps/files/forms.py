@@ -9,7 +9,7 @@ INPUT_CLASSES = (
     "focus:border-rose-500 focus:ring-rose-500"
 )
 
-MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20 MB (matches Nginx client_max_body_size)
+MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB (matches Nginx client_max_body_size)
 
 
 class PregnancyFileForm(forms.ModelForm):
@@ -27,7 +27,10 @@ class PregnancyFileForm(forms.ModelForm):
             "file": forms.ClearableFileInput(
                 attrs={
                     "class": INPUT_CLASSES,
-                    "accept": "image/jpeg,image/png,image/webp,application/pdf",
+                    "accept": (
+                        "image/jpeg,image/png,image/webp,application/pdf,"
+                        "video/mp4,video/quicktime,video/x-m4v,video/webm"
+                    ),
                 }
             ),
             "category": forms.Select(attrs={"class": INPUT_CLASSES}),

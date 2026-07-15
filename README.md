@@ -8,7 +8,7 @@ Built with Django, HTMX, Tailwind CSS, PostgreSQL, and Cloudflare R2.
 
 - **Dashboard** — Current pregnancy week, days until due date, upcoming appointments, recent files
 - **Appointments** — CRUD with Google Calendar sync (auto-creates events with reminders)
-- **Files** — Upload ultrasounds, lab results, prescriptions, belly photos to S3-compatible storage (R2/MinIO)
+- **Files** — Upload ultrasounds, lab results, prescriptions, belly photos and videos to Cloudflare R2
 - **Weekly Logs** — Track weight, blood pressure, symptoms, mood per pregnancy week
 - **Kick Counter** — Log daily kick count sessions with duration tracking
 - **Birth Plan** — Write and edit your birth preferences
@@ -50,13 +50,13 @@ docker compose up --build
 This starts:
 - **web** on http://localhost:8000 (Django + Tailwind watcher)
 - **db** on port 5432 (PostgreSQL 16)
-- **minio** on http://localhost:9000 (S3-compatible storage, console at :9001)
 
-### 3. Run migrations and create the storage bucket
+File storage points at Cloudflare R2 (set the `AWS_*` vars in `.env`).
+
+### 3. Run migrations
 
 ```bash
 docker compose exec web python manage.py migrate
-docker compose exec web python manage.py create_minio_bucket
 ```
 
 ### 4. Create a Django Site
@@ -109,10 +109,10 @@ Open http://localhost:8000 — you'll be redirected to Google OAuth login.
 | `ALLOWED_HOSTS` | Comma-separated hostnames | `localhost,127.0.0.1` |
 | `ALLOWED_LOGIN_EMAILS` | Whitelisted Gmail addresses | `you@gmail.com,partner@gmail.com` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://baby:baby@db:5432/babytracker` |
-| `AWS_ACCESS_KEY_ID` | S3/R2/MinIO access key | `minioadmin` |
-| `AWS_SECRET_ACCESS_KEY` | S3/R2/MinIO secret key | `minioadmin` |
+| `AWS_ACCESS_KEY_ID` | R2 access key | `<r2-access-key-id>` |
+| `AWS_SECRET_ACCESS_KEY` | R2 secret key | `<r2-secret-access-key>` |
 | `AWS_STORAGE_BUCKET_NAME` | Bucket name | `baby-tracker` |
-| `AWS_S3_ENDPOINT_URL` | S3-compatible endpoint | `http://minio:9000` |
+| `AWS_S3_ENDPOINT_URL` | S3-compatible endpoint | `https://<account>.r2.cloudflarestorage.com` |
 | `AWS_S3_REGION_NAME` | S3 region (use `auto` for R2) | `auto` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | `123...apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `GOCSPX-...` |
@@ -126,37 +126,39 @@ docker compose exec web pytest
 
 ## Production Deployment
 
-### One-shot VPS provisioning
+Production runs entirely in Docker on the VPS at `/srv/baby-tracker/`:
 
-`scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: apt packages, Postgres, Nginx, systemd, Certbot, UFW, the `deploy` user with narrowly-scoped `NOPASSWD` sudo, the `.env` file, migrations, and the `gunicorn-baby-tracker` service. It's idempotent — safe to re-run.
+- **caddy** (ports 80/443) — reverse proxy with automatic Let's Encrypt HTTPS
+- **web** — `ghcr.io/carlosz44/baby-tracker:latest` (gunicorn; WhiteNoise serves static files)
+- **db** — `postgres:16-alpine` with a named volume
 
-```bash
-# On the VPS, clone the repo to /tmp, then:
-cd /tmp/baby-tracker
-sudo -E bash scripts/bootstrap-vps.sh
-```
+GitHub Secrets are the single source of truth: `.env` on the VPS is rewritten from them on every deploy.
 
-`REPO_URL` is auto-detected from `git remote get-url origin`. The script prompts interactively for the values it needs (`DOMAIN`, `EMAIL`, `ALLOWED_EMAILS`, `GOOGLE_CLIENT_ID/SECRET`, `R2_ACCESS_KEY/SECRET/ENDPOINT`); pre-export them as env vars to skip the prompts.
+### Provisioning a host
 
-Heads-up for tiny VPSes (≤1GB RAM): add a swap file before running bootstrap, otherwise the kernel OOM-kills processes. `fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile`, then add `/swapfile none swap sw 0 0` to `/etc/fstab`.
+Run the **Provision VPS** workflow (Actions → Provision VPS → Run workflow). It SSHes as root and idempotently installs Docker, configures UFW/fail2ban, creates the `deploy` user (in the `docker` group), and installs the nightly backup cron. No manual server setup.
+
+One-time cutover inputs (already used for the original migration): `migrate_db` copies the legacy host Postgres into the container (taking a safety dump to R2 first); `decommission_legacy` stops nginx/gunicorn/host-postgres and hands 80/443 to Caddy.
 
 ### GitHub Actions CI/CD
 
-`.github/workflows/deploy.yml`:
-1. On push to `main`, runs `pytest` against a Postgres service container.
-2. On success, downloads the Tailwind CLI on the GitHub runner, builds `output.css --minify`, and `scp`s it to the VPS (Tailwind can't build on a 1GB VPS without OOM).
-3. SSHes in, `git pull`, rewrites `/var/www/baby-tracker/.env` from GitHub Secrets (so updating a secret propagates on the next deploy), sources it, `pip install`, `migrate`, `touch` + `collectstatic --clear --ignore="input.css"`, restarts `gunicorn-baby-tracker`.
+`.github/workflows/deploy.yml`, on push to `main`:
+1. `pytest` against a Postgres service container.
+2. Builds the production image (Tailwind build + `collectstatic` baked in) and pushes to GHCR.
+3. SSHes in as `deploy`: copies `deploy/compose.prod.yml`, `deploy/Caddyfile` and `deploy/backup_db.sh` to `/srv/baby-tracker/`, rewrites `.env` from Secrets, `docker compose pull && up -d`, runs `migrate`.
 
 Required GitHub Secrets:
 
 | Secret | Description |
 |---|---|
 | `VPS_HOST` | Server IP or hostname |
-| `VPS_SSH_KEY` | Private SSH key for the `deploy` user |
+| `VPS_SSH_KEY` | Private SSH key (authorized for both `deploy` and `root`) |
 | `SECRET_KEY` | Django secret key |
-| `ALLOWED_HOSTS` | Comma-separated hostnames |
+| `ALLOWED_HOSTS` | The public domain (single value — Caddy uses it as site address) |
 | `ALLOWED_LOGIN_EMAILS` | Whitelisted Gmail addresses |
-| `DATABASE_URL` | `postgres://baby:<pwd>@localhost:5432/babytracker` |
+| `DATABASE_URL` | `postgres://baby:<pwd>@db:5432/babytracker` |
+| `POSTGRES_PASSWORD` | Same `<pwd>` as in `DATABASE_URL` |
+| `ACME_EMAIL` | Email for Let's Encrypt notices |
 | `AWS_ACCESS_KEY_ID` | R2 access key |
 | `AWS_SECRET_ACCESS_KEY` | R2 secret key |
 | `AWS_STORAGE_BUCKET_NAME` | Bucket name (e.g. `baby-tracker`) |
@@ -164,11 +166,19 @@ Required GitHub Secrets:
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 
-To seed these after running `bootstrap-vps.sh`, SSH in as `deploy` and copy values from `/var/www/baby-tracker/.env` into GitHub → Settings → Secrets and variables → Actions. `DEBUG=False`, `AWS_S3_REGION_NAME=auto`, and `DJANGO_SETTINGS_MODULE=config.settings.production` are hardcoded by the workflow and don't need secrets.
+`DEBUG=False`, `AWS_S3_REGION_NAME=auto`, and `DJANGO_SETTINGS_MODULE=config.settings.production` are hardcoded by the workflow.
 
-### Static file caching
+### Static files
 
-Production uses `ManifestStaticFilesStorage`: `collectstatic` renames files to `output.a1b2c3d4.css` based on content hash, with Nginx serving `/static/` as `immutable` for 30 days. Cache-busting is automatic on every CSS change — no hard-reloads needed. `input.css` is excluded from collectstatic via `--ignore="input.css"` because it's the Tailwind source, not a runtime asset.
+Built into the image at CI time: Tailwind minified CSS + `collectstatic` with WhiteNoise's `CompressedManifestStaticFilesStorage` (content-hashed filenames, gzip/brotli, `immutable` cache headers). `input.css` is excluded via `--ignore="input.css"` because it's the Tailwind source, not a runtime asset.
+
+### Migrating to a new host (e.g. Proxmox home server)
+
+1. Point `VPS_HOST` at the new machine (root SSH with `VPS_SSH_KEY`).
+2. Run the Provision VPS workflow.
+3. Re-run the deploy workflow (or push to `main`).
+4. Restore the latest dump from R2: `docker compose -f compose.prod.yml exec -T db pg_restore -U baby -d babytracker --clean --if-exists < babytracker-YYYY-MM-DD.dump`
+5. Point DNS at the new IP — Caddy issues the cert automatically.
 
 ### Cloudflare R2 Setup (Production Storage)
 
@@ -185,19 +195,13 @@ Production uses `ManifestStaticFilesStorage`: `collectstatic` renames files to `
 
 ### Nightly DB backups to R2
 
-`scripts/backup_db.sh` runs nightly via `/etc/cron.d/baby-tracker-backup` (installed by `bootstrap-vps.sh`). It `pg_dump`s the production database (`-Fc` custom format), uploads to R2 under `db-backups/babytracker-YYYY-MM-DD.dump`, and prunes anything older than 30 days. Logs to `/var/log/baby-tracker-backup.log`.
+`/srv/baby-tracker/backup_db.sh` runs nightly via `/etc/cron.d/baby-tracker-backup` (installed by the provision workflow). It `pg_dump`s from the db container (`-Fc` custom format) and pipes the dump to `scripts/backup_db.py` in the web image, which uploads to R2 under `db-backups/babytracker-YYYY-MM-DD.dump` and prunes anything older than 30 days. Logs to `/var/log/baby-tracker-backup.log`.
 
-Test once after bootstrap: `sudo -u deploy /var/www/baby-tracker/scripts/backup_db.sh` (you should see an `uploaded db-backups/...` line and a new object in the R2 bucket).
+Test manually: `ssh deploy@<vps> /srv/baby-tracker/backup_db.sh` (you should see an `uploaded db-backups/...` line and a new object in the R2 bucket).
 
-To restore on a fresh VPS after re-running bootstrap:
-```bash
-# Download the most recent dump from R2 (via rclone, awscli, or Cloudflare dashboard)
-sudo -u postgres pg_restore -d babytracker --clean --if-exists babytracker-YYYY-MM-DD.dump
-```
+### TrueNAS Cloud Sync (optional, not currently enabled)
 
-### TrueNAS Cloud Sync (Nightly R2 Backup)
-
-To back up R2 files to your local TrueNAS:
+To back up R2 files to a local TrueNAS:
 
 1. TrueNAS Web UI → Credentials → Cloud Credentials → Add
    - Provider: S3-compatible (Cloudflare R2)

@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -17,8 +17,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
     chmod +x "tailwindcss-${TAILWIND_ARCH}" && \
     mv "tailwindcss-${TAILWIND_ARCH}" /usr/local/bin/tailwindcss
 
-# Install Python dependencies
 COPY requirements/ requirements/
+
+FROM base AS dev
+
 RUN pip install --no-cache-dir -r requirements/local.txt
 
 COPY . .
@@ -28,3 +30,24 @@ RUN chmod +x start.sh
 EXPOSE 8000
 
 CMD ["./start.sh"]
+
+FROM base AS prod
+
+RUN pip install --no-cache-dir -r requirements/production.txt
+
+COPY . .
+
+# Dummy env satisfies python-decouple; collectstatic never touches the DB
+RUN tailwindcss -i static/css/input.css -o static/css/output.css --minify && \
+    SECRET_KEY=build-only \
+    DATABASE_URL=postgres://build:build@localhost:5432/build \
+    ALLOWED_HOSTS=build \
+    DJANGO_SETTINGS_MODULE=config.settings.production \
+    python manage.py collectstatic --no-input --ignore="input.css"
+
+EXPOSE 8000
+
+CMD ["gunicorn", "config.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--timeout", "120"]

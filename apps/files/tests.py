@@ -105,6 +105,31 @@ def test_file_preview_shows_pdf_embed_and_fallback_actions(
 
 
 @pytest.mark.django_db
+def test_file_preview_shows_video_player(client, user, local_file_storage):
+    pregnancy_file = create_pregnancy_file(
+        user,
+        file=SimpleUploadedFile(
+            "eco-4d.mp4",
+            b"\x00\x00\x00\x18ftypmp42 fake video",
+            content_type="video/mp4",
+        ),
+        category="ultrasound",
+        title="Ecografia 4D",
+        notes="",
+    )
+
+    assert pregnancy_file.is_video
+    assert not pregnancy_file.is_image
+
+    response = client.get(f"/files/{pregnancy_file.pk}/preview/")
+
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert "<video" in content
+    assert 'src="/media/' in content
+
+
+@pytest.mark.django_db
 def test_file_upload_view(client):
     response = client.get("/files/upload/")
     assert response.status_code == 200

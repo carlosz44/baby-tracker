@@ -18,7 +18,17 @@ class PregnancyFile(models.Model):
         upload_to="pregnancy-files/%Y/%m/",
         validators=[
             FileExtensionValidator(
-                allowed_extensions=["jpg", "jpeg", "png", "webp", "pdf"]
+                allowed_extensions=[
+                    "jpg",
+                    "jpeg",
+                    "png",
+                    "webp",
+                    "pdf",
+                    "mp4",
+                    "mov",
+                    "m4v",
+                    "webm",
+                ]
             ),
         ],
     )
@@ -46,6 +56,12 @@ class PregnancyFile(models.Model):
     def is_image(self):
         if self.file and self.file.name:
             return self.file.name.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+        return False
+
+    @property
+    def is_video(self):
+        if self.file and self.file.name:
+            return self.file.name.lower().endswith((".mp4", ".mov", ".m4v", ".webm"))
         return False
 
     @property
