@@ -70,17 +70,20 @@ jobs:
               docker compose -f compose.prod.yml exec -T db pg_isready -U baby -d babytracker && break
               sleep 2
             done
-            TABLES=$(docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'")
-            if [ "$TABLES" != "0" ]; then
-              echo "Target DB already has $TABLES tables — refusing to overwrite"
+            USERS=$(docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM accounts_user" 2>/dev/null || echo 0)
+            if [ "$USERS" != "0" ]; then
+              echo "Target DB already has $USERS users — refusing to overwrite"
               exit 1
             fi
             # Safety dump to R2 via the legacy stack before touching anything
             sudo -u deploy bash /var/www/baby-tracker/scripts/backup_db.sh
+            docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
             sudo -u postgres pg_dump -Fc --no-owner --no-acl babytracker \
               | docker compose -f compose.prod.yml exec -T db pg_restore -U baby -d babytracker --no-owner --no-acl
-            echo "Migration done. Table check:"
-            docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'"
+            # Old prod schema may be behind the shipped code — apply pending migrations
+            docker compose -f compose.prod.yml exec -T web python manage.py migrate --no-input
+            echo "Migration done. User check:"
+            docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM accounts_user"
             SCRIPT
 
       - name: Decommission legacy stack
