@@ -1,0 +1,13 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$ALLOWED_HOSTS} {
+	encode gzip
+
+	request_body {
+		max_size 100MB
+	}
+
+	reverse_proxy web:8000
+}

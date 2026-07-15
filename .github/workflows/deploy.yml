@@ -47,8 +47,37 @@ jobs:
       - name: Run tests
         run: pytest
 
-  deploy:
+  build:
     needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
     runs-on: ubuntu-latest
 
     env:
@@ -56,6 +85,8 @@ jobs:
       ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
       ALLOWED_LOGIN_EMAILS: ${{ secrets.ALLOWED_LOGIN_EMAILS }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
@@ -66,21 +97,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build Tailwind CSS
-        run: |
-          curl -sSL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss
-          chmod +x tailwindcss
-          ./tailwindcss -i static/css/input.css -o static/css/output.css --minify
-
-      - name: Copy Tailwind output to VPS
+      - name: Copy deploy files to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "static/css/output.css"
-          target: "/var/www/baby-tracker/static/css/"
-          strip_components: 2
+          source: "deploy/compose.prod.yml,deploy/Caddyfile,deploy/backup_db.sh"
+          target: "/srv/baby-tracker/"
+          strip_components: 1
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
@@ -88,10 +113,10 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: SECRET_KEY,ALLOWED_HOSTS,ALLOWED_LOGIN_EMAILS,DATABASE_URL,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_ENDPOINT_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          envs: SECRET_KEY,ALLOWED_HOSTS,ALLOWED_LOGIN_EMAILS,DATABASE_URL,POSTGRES_PASSWORD,ACME_EMAIL,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_ENDPOINT_URL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
-            cd /var/www/baby-tracker
-            git pull origin main
+            cd /srv/baby-tracker
+            chmod +x backup_db.sh
             umask 077
             cat > .env <<EOF
             SECRET_KEY=$SECRET_KEY
@@ -99,6 +124,8 @@ jobs:
             ALLOWED_HOSTS=$ALLOWED_HOSTS
             ALLOWED_LOGIN_EMAILS=$ALLOWED_LOGIN_EMAILS
             DATABASE_URL=$DATABASE_URL
+            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            ACME_EMAIL=$ACME_EMAIL
             AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
             AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME
@@ -108,12 +135,7 @@ jobs:
             GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
             DJANGO_SETTINGS_MODULE=config.settings.production
             EOF
-            source venv/bin/activate
-            set -a
-            source .env
-            set +a
-            pip install -r requirements/production.txt --quiet
-            python manage.py migrate --no-input
-            touch static/css/output.css
-            python manage.py collectstatic --no-input --clear --ignore="input.css"
-            sudo systemctl restart gunicorn-baby-tracker
+            docker compose -f compose.prod.yml pull
+            docker compose -f compose.prod.yml up -d --remove-orphans
+            docker compose -f compose.prod.yml exec -T web python manage.py migrate --no-input
+            docker image prune -f

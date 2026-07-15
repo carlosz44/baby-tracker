@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Private pregnancy tracking app for two users (couple). Django 5.2 + HTMX + Tailwind CSS + PostgreSQL + S3-compatible storage (Cloudflare R2 in prod, MinIO locally). Authentication is Google OAuth SSO restricted to a whitelist of two Gmail addresses (`ALLOWED_LOGIN_EMAILS`).
+Private pregnancy tracking app for two users (couple). Django 5.2 + HTMX + Tailwind CSS + PostgreSQL + Cloudflare R2 for media (prod and local dev use separate buckets). Authentication is Google OAuth SSO restricted to a whitelist of two Gmail addresses (`ALLOWED_LOGIN_EMAILS`).
 
 ## Development Commands
 
 ```bash
-# Start all services (web on :8000, postgres on :5432, minio on :9000/:9001)
+# Start all services (web on :8000, postgres on :5432)
 docker compose up --build
 
 # Run migrations
@@ -26,9 +26,6 @@ docker compose exec web pytest -k "test_name"
 
 # Django shell
 docker compose exec web python manage.py shell
-
-# Create MinIO bucket (first time setup)
-docker compose exec web python manage.py create_minio_bucket
 
 # Build Tailwind CSS manually (normally handled by start.sh watcher)
 tailwindcss -i static/css/input.css -o static/css/output.css
@@ -70,12 +67,12 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/deploy.yml`): pushes to `main` run pytest with a Postgres service container, then build Tailwind CSS on the runner, `scp` the minified `output.css` to the VPS, and SSH-deploy. The SSH script **rewrites `/var/www/baby-tracker/.env` from GitHub Secrets on every deploy** (heredoc populated from `secrets.*`), sources it, runs migrate, `touch static/css/output.css` (so `collectstatic` doesn't skip on mtime), `collectstatic --no-input --clear --ignore="input.css"`, and restarts `gunicorn-baby-tracker`. Tailwind is built in CI (not on the VPS) because budget VPSes OOM-kill tailwindcss during the build. `DEBUG=False`, `AWS_S3_REGION_NAME=auto`, and `DJANGO_SETTINGS_MODULE=config.settings.production` are hardcoded in the workflow's heredoc; everything else comes from Secrets (`SECRET_KEY`, `ALLOWED_HOSTS`, `ALLOWED_LOGIN_EMAILS`, `DATABASE_URL`, `AWS_*` minus region, `GOOGLE_CLIENT_ID/SECRET`, plus `VPS_HOST`/`VPS_SSH_KEY`). The deploy SSH user is hardcoded as `deploy`.
+Production runs in Docker at `/srv/baby-tracker/` on the VPS: `caddy` (80/443, automatic Let's Encrypt HTTPS, 100MB request body limit), `web` (`ghcr.io/carlosz44/baby-tracker:latest`, gunicorn 3 workers), `db` (`postgres:16-alpine`, named volume `pgdata`). Config files live in the repo under `deploy/` (`compose.prod.yml`, `Caddyfile`, `backup_db.sh`) and are copied to the VPS on every deploy — infra changes ship via push to `main`, no manual SSH.
 
-Production uses `ManifestStaticFilesStorage` (set in `config/settings/production.py`): `collectstatic` content-hashes static filenames (`output.css` → `output.a1b2c3d4.css`) and writes `staticfiles.json`. Combined with Nginx's `expires 30d` + `Cache-Control: public, immutable` on `/static/`, this gives permanent-cache for unchanged assets and instant invalidation when content changes. Any `{% static %}` reference to a file missing from the manifest raises `ValueError` at render time — a 500 on all pages.
+GitHub Actions (`.github/workflows/deploy.yml`), on push to `main`: (1) pytest with a Postgres service container; (2) build the production image (multi-stage `Dockerfile`, target `prod` — Tailwind build + `collectstatic` baked in at build time with dummy env vars) and push to GHCR (`latest` + commit SHA tags, GHA layer cache); (3) SSH as `deploy`, copy `deploy/*` files, **rewrite `/srv/baby-tracker/.env` from GitHub Secrets on every deploy** (single source of truth), `docker compose pull && up -d`, `migrate`, image prune. `DEBUG=False`, `AWS_S3_REGION_NAME=auto`, `DJANGO_SETTINGS_MODULE=config.settings.production` are hardcoded in the workflow heredoc. Secrets: `SECRET_KEY`, `ALLOWED_HOSTS` (single domain — doubles as the Caddy site address), `ALLOWED_LOGIN_EMAILS`, `DATABASE_URL` (host `db`), `POSTGRES_PASSWORD`, `ACME_EMAIL`, `AWS_*` minus region, `GOOGLE_CLIENT_ID/SECRET`, `VPS_HOST`, `VPS_SSH_KEY` (authorized for both `deploy` and `root`).
 
-`scripts/bootstrap-vps.sh` provisions a fresh Ubuntu/Debian VPS end-to-end: installs Python/Postgres/Nginx/Certbot/Tailwind CLI, creates the `deploy` user with `NOPASSWD` sudo scoped to `systemctl restart gunicorn-baby-tracker`, sets up the DB, clones the repo, writes `.env`, runs migrations + collectstatic, installs the `gunicorn-baby-tracker` systemd unit, configures Nginx, issues a Let's Encrypt cert, and enables UFW. Idempotent — safe to re-run.
+`.github/workflows/provision.yml` (manual `workflow_dispatch`) provisions any fresh Ubuntu/Debian host as root: installs Docker, UFW (22/80/443), fail2ban, creates the `deploy` user in the `docker` group, installs the backup cron. One-time cutover inputs: `migrate_db` (legacy host Postgres → container, with prior safety dump to R2), `decommission_legacy` (stops old nginx/gunicorn/host-postgres; legacy stack at `/var/www/baby-tracker` kept as cold backup).
 
-Deploy-time constants (`DEPLOY_USER=deploy`, `PYTHON_BIN=python3`, `APP_DIR=/var/www/baby-tracker`, `DB_NAME=babytracker`, `DB_USER=baby`, `R2_BUCKET=baby-tracker`, `SERVICE_NAME=gunicorn-baby-tracker`) are hardcoded in the script. `REPO_URL` auto-detects from the checked-out repo's `origin` remote. Required values (`DOMAIN`, `EMAIL`, `ALLOWED_EMAILS`, `GOOGLE_CLIENT_ID/SECRET`, `R2_ACCESS_KEY/SECRET/ENDPOINT`) are prompted for interactively, or can be passed as env vars. Invoke as root: `sudo -E bash scripts/bootstrap-vps.sh`. After bootstrap, copy values from `/var/www/baby-tracker/.env` into GitHub Secrets so CI deploys work.
+Static files use WhiteNoise's `CompressedManifestStaticFilesStorage` (set in `config/settings/production.py`, middleware inserted after SecurityMiddleware): content-hashed filenames + `staticfiles.json` manifest + gzip/brotli, served from inside the web container with immutable cache headers — Caddy is a pure proxy. Any `{% static %}` reference to a file missing from the manifest raises `ValueError` at render time — a 500 on all pages. Static is baked into the image at CI build; there is no collectstatic on the VPS.
 
-Bootstrap also installs `/etc/cron.d/baby-tracker-backup`: nightly `scripts/backup_db.sh` (sources `.env`, then `scripts/backup_db.py` uses the app's venv + boto3) runs `pg_dump -Fc` and uploads to R2 at `db-backups/babytracker-YYYY-MM-DD.dump`, pruning anything older than 30 days. Logs to `/var/log/baby-tracker-backup.log`. The TrueNAS Cloud Sync then mirrors both `pregnancy-files/` and `db-backups/` prefixes locally. Disaster-recovery restore: `pg_restore -d babytracker --clean --if-exists <dump>` after re-running bootstrap.
+Nightly backups: `/etc/cron.d/baby-tracker-backup` runs `/srv/baby-tracker/backup_db.sh` at 3am — `pg_dump -Fc` inside the db container piped to `scripts/backup_db.py --stdin` in the web image (boto3), uploading to R2 `db-backups/babytracker-YYYY-MM-DD.dump` with 30-day pruning. The script validates the `PGDMP` magic bytes so a failed dump never overwrites a good backup. Logs to `/var/log/baby-tracker-backup.log`. R2 is the only backup location (no TrueNAS sync configured). Restore: `docker compose -f compose.prod.yml exec -T db pg_restore -U baby -d babytracker --clean --if-exists < <dump>`.

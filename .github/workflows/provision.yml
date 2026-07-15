@@ -1,0 +1,97 @@
+name: Provision VPS
+
+on:
+  workflow_dispatch:
+    inputs:
+      migrate_db:
+        description: "Copy legacy host Postgres data into the db container (one-time cutover)"
+        type: boolean
+        default: false
+      decommission_legacy:
+        description: "Stop legacy nginx/gunicorn/host-postgres and hand 80/443 to Caddy"
+        type: boolean
+        default: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Base provision (Docker, firewall, deploy user, backup cron)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            export DEBIAN_FRONTEND=noninteractive
+            command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
+            apt-get install -y -qq fail2ban ufw
+            id deploy &>/dev/null || adduser --disabled-password --gecos "" deploy
+            usermod -aG docker deploy
+            if [ -f /root/.ssh/authorized_keys ] && [ ! -f /home/deploy/.ssh/authorized_keys ]; then
+              mkdir -p /home/deploy/.ssh
+              cp /root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
+              chown -R deploy:deploy /home/deploy/.ssh
+              chmod 700 /home/deploy/.ssh
+              chmod 600 /home/deploy/.ssh/authorized_keys
+            fi
+            mkdir -p /srv/baby-tracker
+            chown deploy:deploy /srv/baby-tracker
+            cat > /etc/cron.d/baby-tracker-backup <<EOF
+            SHELL=/bin/bash
+            PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            0 3 * * * deploy /srv/baby-tracker/backup_db.sh >> /var/log/baby-tracker-backup.log 2>&1
+            EOF
+            chmod 644 /etc/cron.d/baby-tracker-backup
+            touch /var/log/baby-tracker-backup.log
+            chown deploy:deploy /var/log/baby-tracker-backup.log
+            ufw allow OpenSSH
+            ufw allow 80/tcp
+            ufw allow 443/tcp
+            ufw --force enable
+
+      - name: Migrate legacy DB into container
+        if: ${{ inputs.migrate_db }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /srv/baby-tracker
+            docker compose -f compose.prod.yml up -d db
+            for i in $(seq 1 30); do
+              docker compose -f compose.prod.yml exec -T db pg_isready -U baby -d babytracker && break
+              sleep 2
+            done
+            TABLES=$(docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'")
+            if [ "$TABLES" != "0" ]; then
+              echo "Target DB already has $TABLES tables — refusing to overwrite"
+              exit 1
+            fi
+            # Safety dump to R2 via the legacy stack before touching anything
+            sudo -u deploy bash /var/www/baby-tracker/scripts/backup_db.sh
+            sudo -u postgres pg_dump -Fc --no-owner --no-acl babytracker \
+              | docker compose -f compose.prod.yml exec -T db pg_restore -U baby -d babytracker --no-owner --no-acl
+            echo "Migration done. Row check:"
+            docker compose -f compose.prod.yml exec -T db psql -U baby -d babytracker -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'"
+
+      - name: Decommission legacy stack
+        if: ${{ inputs.decommission_legacy }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            systemctl disable --now gunicorn-baby-tracker 2>/dev/null || true
+            systemctl disable --now nginx 2>/dev/null || true
+            systemctl disable --now postgresql 2>/dev/null || true
+            cd /srv/baby-tracker
+            docker compose -f compose.prod.yml up -d
+            docker compose -f compose.prod.yml restart caddy
+            echo "Legacy stack stopped. /var/www/baby-tracker kept as cold backup."
