@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BirthPlan, KickCount, WeeklyLog
+from .models import BirthPlan, KickSession, WeeklyLog
 
 
 @admin.register(WeeklyLog)
@@ -9,9 +9,11 @@ class WeeklyLogAdmin(admin.ModelAdmin):
     list_filter = ("mood",)
 
 
-@admin.register(KickCount)
-class KickCountAdmin(admin.ModelAdmin):
-    list_display = ("date", "count", "duration_minutes", "logged_by")
+@admin.register(KickSession)
+class KickSessionAdmin(admin.ModelAdmin):
+    list_display = ("started_at", "count", "goal_reached", "duration_minutes", "source", "logged_by")
+    list_filter = ("source", "goal_reached")
+    date_hierarchy = "started_at"
 
 
 @admin.register(BirthPlan)

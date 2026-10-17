@@ -30,6 +30,11 @@ docker compose exec web python manage.py shell
 # Build Tailwind CSS manually (normally handled by start.sh watcher)
 tailwindcss -i static/css/input.css -o static/css/output.css
 
+# Load kick sessions from JSON on stdin (idempotent; --dry-run to preview).
+# The repo is PUBLIC: personal data is never committed — pipe it in over SSH for prod:
+#   ssh admin@<vps> 'cd /srv/baby-tracker && sudo docker compose -f compose.prod.yml exec -T web python manage.py load_kick_sessions --source screenshot' < sessions.json
+docker compose exec -T web python manage.py load_kick_sessions --source screenshot < sessions.json
+
 # Diagnose Google Calendar sync state per user (token presence, refresh token,
 # live API ping). Useful when sync isn't working for one of the two accounts.
 docker compose exec web python manage.py check_calendar_sync
@@ -46,7 +51,7 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 - **accounts** — Custom `User` model (email as USERNAME_FIELD), `Profile` model with due date and pregnancy week calculations. `WhitelistSocialAccountAdapter` in `adapters.py` restricts login to allowed emails.
 - **appointments** — `Appointment` model with Google Calendar sync. `signals.py` auto-creates/deletes calendar events on save/delete via `calendar_service.py` (uses allauth's `SocialToken` for OAuth credentials).
 - **files** — `PregnancyFile` model with S3-backed `FileField` (upload to `pregnancy-files/%Y/%m/`). Signed URLs expire after 1 hour.
-- **baby** — `WeeklyLog` (weight, blood pressure, symptoms, mood), `KickCount` (daily kick sessions), `BirthPlan` (one per user).
+- **baby** — `WeeklyLog` (weight, blood pressure, symptoms, mood), `KickSession` ("count to 10" sessions keyed by unique `started_at`; `date` auto-derived in Lima on save; `source` = manual/screenshot/counter), `BirthPlan` (one per user). `services.upsert_sessions` inserts sessions idempotently (existing `started_at` → unchanged or conflict, never overwritten).
 - **notifications** — Generic `Notification` model (`kind`, `severity`, `payload`, `dedupe_key`, optional `user`) for surfacing async/background failures to the UI. `registry.py` holds a `kind → handler` map (`@register_handler`); each app registers its own handlers in its `apps.py:ready()`. `services.py` exposes `record_notification` (dedupes on unresolved key, bumps `attempts`), `mark_resolved`, `retry_notification`, and `unresolved_count`. The notifications page at `/notifications/` lists pending issues with HTMX retry/dismiss, plus a "Run diagnostics" button (calls `calendar_service.run_calendar_diagnostics`) and a "Resincronizar" button (calls `calendar_service.resync_future_appointments`, scoped to `date__gte=now`).
 
 ### Frontend
@@ -59,7 +64,7 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 
 ### Key Patterns
 
-- Models are **not scoped per-user** (this is a 2-person app). Appointments and files are shared; `WeeklyLog` and `KickCount` track `logged_by`.
+- Models are **not scoped per-user** (this is a 2-person app). Appointments and files are shared; `WeeklyLog` and `KickSession` track `logged_by` (nullable on `KickSession` for backfilled rows).
 - Profile `due_date` stores first day of last menstrual period (FUR/LMP). `pregnancy_week` and `days_remaining` are computed properties.
 - Google Calendar integration is fire-and-forget: failures are logged but don't block the request (signal handler catches all exceptions). Failures also record a `Notification` so the user sees them at `/notifications/` — `CALENDAR_AUTH_REQUIRED` (severity error, no retry handler — needs re-login) for `MissingCalendarAuth` cases (no token, no refresh token, `invalid_scope`, generic `RefreshError`); `CALENDAR_SYNC_FAILED` (severity warning, retryable) for transient errors. Successful sync resolves any prior notification with the same `dedupe_key` (`appointment:<id>:user:<id>:<action>`).
 - Refreshed Google access tokens are persisted back to `SocialToken` (`token`, `expires_at`) inside `_persist_refreshed_credentials`, so the access token doesn't have to refresh on every API call. Refresh-time failures bubble up as `MissingCalendarAuth` via `_classify_refresh_error` — translated to user-facing strings by `auth_required_message(reason)`, which is the single source of truth for both the sync notification message and the diagnostics page.

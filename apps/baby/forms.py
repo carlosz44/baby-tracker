@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import BirthPlan, KickCount, WeeklyLog
+from .models import BirthPlan, KickSession, WeeklyLog
 
 INPUT_CLASSES = (
     "w-full rounded-lg border border-slate-300 dark:border-zinc-600 "
@@ -41,22 +41,41 @@ class WeeklyLogForm(forms.ModelForm):
         }
 
 
-class KickCountForm(forms.ModelForm):
+class KickSessionForm(forms.ModelForm):
+    duration_minutes = forms.IntegerField(
+        label="Duración (minutos)",
+        required=False,
+        min_value=1,
+        widget=forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Minutos"}),
+    )
+
     class Meta:
-        model = KickCount
-        fields = ["date", "count", "duration_minutes", "notes"]
+        model = KickSession
+        fields = ["started_at", "count", "duration_minutes", "notes"]
         labels = {
-            "date": "Fecha",
+            "started_at": "Inicio",
             "count": "Número de pataditas",
-            "duration_minutes": "Duración (minutos)",
             "notes": "Notas",
         }
         widgets = {
-            "date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date", "class": INPUT_CLASSES}),
+            "started_at": forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local", "class": INPUT_CLASSES}
+            ),
             "count": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
-            "duration_minutes": forms.NumberInput(attrs={"class": INPUT_CLASSES, "placeholder": "Minutos"}),
             "notes": forms.Textarea(attrs={"class": INPUT_CLASSES, "rows": 2}),
         }
+        error_messages = {
+            "started_at": {"unique": "Ya existe una sesión que empezó a esa hora."},
+        }
+
+    def save(self, commit=True):
+        session = super().save(commit=False)
+        minutes = self.cleaned_data.get("duration_minutes")
+        session.duration_seconds = minutes * 60 if minutes else None
+        session.set_goal_from_duration()
+        if commit:
+            session.save()
+        return session
 
 
 class BirthPlanForm(forms.ModelForm):

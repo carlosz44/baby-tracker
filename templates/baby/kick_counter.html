@@ -33,20 +33,32 @@
 
   {# Recientes #}
   <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
-    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 p-5 border-b border-slate-200 dark:border-zinc-700">Últimos 7 Días</h2>
-    {% if recent_kicks %}
+    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 p-5 border-b border-slate-200 dark:border-zinc-700">Últimos 30 Días</h2>
+    {% if recent_sessions %}
+      {% regroup recent_sessions by date as sessions_by_day %}
+      {% for day in sessions_by_day %}
+      <h3 class="px-5 pt-4 pb-1 text-sm font-semibold text-slate-500 dark:text-zinc-400">{{ day.grouper|date:"l, d M" }}</h3>
       <ul class="divide-y divide-slate-100 dark:divide-zinc-700">
-        {% for kick in recent_kicks %}
-        <li class="px-5 py-3 flex items-center justify-between">
+        {% for session in day.list %}
+        <li class="px-5 py-3 flex items-center gap-3">
+          {% if session.goal_reached %}
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">✓</span>
+          {% else %}
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-400 dark:text-zinc-500">–</span>
+          {% endif %}
           <div>
-            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ kick.count }} pataditas</p>
-            <p class="text-sm text-slate-500 dark:text-zinc-400">{{ kick.date|date:"l, d M" }}{% if kick.duration_minutes %} · {{ kick.duration_minutes }} min{% endif %}</p>
+            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ session.started_at|time:"H:i" }}</p>
+            <p class="text-sm text-slate-500 dark:text-zinc-400">{{ session.count }} pataditas{% if session.duration_minutes is not None %} · {{ session.duration_minutes }} min{% endif %}</p>
+            {% if session.notes %}
+            <p class="text-sm text-slate-400 dark:text-zinc-500">{{ session.notes }}</p>
+            {% endif %}
           </div>
         </li>
         {% endfor %}
       </ul>
+      {% endfor %}
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay pataditas registradas en los últimos 7 días.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay pataditas registradas en los últimos 30 días.</p>
     {% endif %}
   </div>
 </div>

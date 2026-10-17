@@ -7,8 +7,8 @@ from django.utils import timezone
 
 from apps.accounts.models import Profile
 
-from .forms import BirthPlanForm, KickCountForm, WeeklyLogForm
-from .models import BirthPlan, KickCount, WeeklyLog
+from .forms import BirthPlanForm, KickSessionForm, WeeklyLogForm
+from .models import BirthPlan, KickSession, WeeklyLog
 
 
 @login_required
@@ -40,21 +40,22 @@ def weekly_log_create(request):
 
 @login_required
 def kick_counter(request):
-    seven_days_ago = timezone.localdate() - timedelta(days=7)
-    recent_kicks = KickCount.objects.filter(date__gte=seven_days_ago)
+    since = timezone.localdate() - timedelta(days=30)
+    recent_sessions = KickSession.objects.filter(date__gte=since)
 
     if request.method == "POST":
-        form = KickCountForm(request.POST)
+        form = KickSessionForm(request.POST)
         if form.is_valid():
-            kick = form.save(commit=False)
-            kick.logged_by = request.user
-            kick.save()
+            session = form.save(commit=False)
+            session.logged_by = request.user
+            session.save()
             messages.success(request, "Pataditas registradas.")
             return redirect("kick_counter")
     else:
-        form = KickCountForm(initial={"date": timezone.localdate()})
+        now = timezone.localtime().replace(second=0, microsecond=0)
+        form = KickSessionForm(initial={"started_at": now, "count": 10})
 
-    return render(request, "baby/kick_counter.html", {"form": form, "recent_kicks": recent_kicks})
+    return render(request, "baby/kick_counter.html", {"form": form, "recent_sessions": recent_sessions})
 
 
 @login_required
