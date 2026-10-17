@@ -27,7 +27,8 @@ docker compose exec web pytest -k "test_name"
 # Django shell
 docker compose exec web python manage.py shell
 
-# Build Tailwind CSS manually (normally handled by start.sh watcher)
+# Build Tailwind CSS manually (start.sh runs a watcher, but it misses edits made from
+# the macOS host through the bind mount — rerun this when new classes don't apply)
 tailwindcss -i static/css/input.css -o static/css/output.css
 
 # Load kick sessions from JSON on stdin (idempotent; --dry-run to preview).
@@ -51,7 +52,7 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 - **accounts** — Custom `User` model (email as USERNAME_FIELD), `Profile` model with due date and pregnancy week calculations. `WhitelistSocialAccountAdapter` in `adapters.py` restricts login to allowed emails.
 - **appointments** — `Appointment` model with Google Calendar sync. `signals.py` auto-creates/deletes calendar events on save/delete via `calendar_service.py` (uses allauth's `SocialToken` for OAuth credentials).
 - **files** — `PregnancyFile` model with S3-backed `FileField` (upload to `pregnancy-files/%Y/%m/`). Signed URLs expire after 1 hour.
-- **baby** — `WeeklyLog` (weight, blood pressure, symptoms, mood), `KickSession` ("count to 10" sessions keyed by unique `started_at`; `date` auto-derived in Lima on save; `source` = manual/screenshot/counter), `BirthPlan` (one per user). `services.upsert_sessions` inserts sessions idempotently (existing `started_at` → unchanged or conflict, never overwritten).
+- **baby** — `WeeklyLog` (weight, blood pressure, symptoms, mood), `KickSession` ("count to 10" sessions keyed by unique `started_at`; `date` auto-derived in Lima on save; `source` = manual/screenshot/counter), `BirthPlan` (one per user). `services.upsert_sessions` inserts sessions idempotently (existing `started_at` → unchanged or conflict, never overwritten). The tap counter on `/baby/kick-counter/` (`static/js/kick_counter.js`) keeps the running session in `localStorage` (survives reload/lock) and POSTs JSON once to `kick_session_save`, validated by `KickCounterForm`; per-kick times go to `kick_offsets`, and `set_goal()` derives `time_to_goal_seconds` from the 10th kick.
 - **notifications** — Generic `Notification` model (`kind`, `severity`, `payload`, `dedupe_key`, optional `user`) for surfacing async/background failures to the UI. `registry.py` holds a `kind → handler` map (`@register_handler`); each app registers its own handlers in its `apps.py:ready()`. `services.py` exposes `record_notification` (dedupes on unresolved key, bumps `attempts`), `mark_resolved`, `retry_notification`, and `unresolved_count`. The notifications page at `/notifications/` lists pending issues with HTMX retry/dismiss, plus a "Run diagnostics" button (calls `calendar_service.run_calendar_diagnostics`) and a "Resincronizar" button (calls `calendar_service.resync_future_appointments`, scoped to `date__gte=now`).
 
 ### Frontend

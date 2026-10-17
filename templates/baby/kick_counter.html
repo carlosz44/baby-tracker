@@ -1,14 +1,126 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Contador de Pataditas — Baby Tracker{% endblock %}
 {% block header %}Contador de Pataditas{% endblock %}
 
+{% block extra_head %}
+<script src="{% static 'js/kick_counter.js' %}" defer></script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-lg mx-auto space-y-6">
-  {# Formulario #}
-  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6">
-    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 mb-4">Registrar Sesión de Pataditas</h2>
-    <form method="post">
+  {# Contador #}
+  <div id="kick-counter"
+       data-save-url="{% url 'kick_session_save' %}"
+       data-csrf="{{ csrf_token }}"
+       data-target="10"
+       class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6 text-center">
+
+    <div data-view="idle">
+      <p class="text-sm text-slate-500 dark:text-zinc-400 mb-6">Toca el botón cada vez que sientas un movimiento. La meta es llegar a 10 pataditas.</p>
+      <button type="button" data-action="start"
+              class="w-full bg-rose-500 hover:bg-rose-600 text-white text-lg font-semibold py-4 rounded-xl transition">
+        Empezar
+      </button>
+    </div>
+
+    <div data-view="counting" hidden>
+      <p data-el="timer" class="text-5xl font-semibold tabular-nums text-slate-800 dark:text-zinc-100">00:00</p>
+      <p class="mt-1 text-slate-500 dark:text-zinc-400"><span data-el="count" class="font-semibold text-slate-700 dark:text-zinc-200">0</span> / 10 pataditas</p>
+
+      <div data-el="warning" hidden
+           class="mt-4 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 text-left text-sm text-amber-800 dark:text-amber-300">
+        Han pasado 2 horas sin llegar a 10 pataditas. Comunícate con tu médico.
+      </div>
+
+      <button type="button" data-action="kick"
+              class="mx-auto my-8 flex h-52 w-52 items-center justify-center rounded-full bg-rose-500 text-2xl font-semibold text-white shadow-lg transition select-none touch-manipulation active:scale-95 active:bg-rose-600">
+        Patadita
+      </button>
+
+      <div class="flex justify-center gap-3">
+        <button type="button" data-action="undo"
+                class="rounded-lg border border-slate-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700 disabled:opacity-40">
+          Deshacer
+        </button>
+        <button type="button" data-action="finish"
+                class="rounded-lg border border-slate-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700">
+          Terminar
+        </button>
+      </div>
+    </div>
+
+    <dialog data-el="dialog"
+            class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-xl bg-white dark:bg-zinc-800 p-6 text-left text-slate-700 dark:text-zinc-200 shadow-xl backdrop:bg-black/50">
+      <h3 data-el="dialog-title" class="text-lg font-semibold text-slate-800 dark:text-zinc-100"></h3>
+      <p data-el="dialog-summary" class="mt-1 text-sm text-slate-500 dark:text-zinc-400"></p>
+      <label for="kick-notes" class="mt-4 mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Notas (opcional)</label>
+      <textarea id="kick-notes" data-el="notes" rows="2"
+                class="w-full rounded-lg border border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-slate-700 dark:text-zinc-200 focus:border-rose-500 focus:ring-rose-500"></textarea>
+      <p data-el="dialog-error" hidden class="mt-2 text-sm text-red-500"></p>
+      <div class="mt-5 space-y-2">
+        <button type="button" data-action="save" autofocus
+                class="w-full rounded-lg bg-rose-500 hover:bg-rose-600 px-4 py-2 font-medium text-white transition disabled:opacity-60">
+          Guardar
+        </button>
+        <button type="button" data-action="continue"
+                class="w-full rounded-lg border border-slate-300 dark:border-zinc-600 px-4 py-2 font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700">
+          Seguir contando
+        </button>
+        <button type="button" data-action="discard"
+                class="w-full px-4 py-2 text-sm text-slate-400 dark:text-zinc-500 hover:text-red-500">
+          Descartar sesión
+        </button>
+      </div>
+    </dialog>
+  </div>
+
+  {# Recientes #}
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
+    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 p-5 border-b border-slate-200 dark:border-zinc-700">Últimos 30 Días</h2>
+    {% if recent_sessions %}
+      {% regroup recent_sessions by date as sessions_by_day %}
+      {% for day in sessions_by_day %}
+      <h3 class="px-5 pt-4 pb-1 text-sm font-semibold text-slate-500 dark:text-zinc-400">{{ day.grouper|date:"l, d M" }}</h3>
+      <ul class="divide-y divide-slate-100 dark:divide-zinc-700">
+        {% for session in day.list %}
+        <li class="px-5 py-3 flex items-center gap-3">
+          {% if session.goal_reached %}
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">✓</span>
+          {% else %}
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-400 dark:text-zinc-500">–</span>
+          {% endif %}
+          <div class="min-w-0 flex-1">
+            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ session.started_at|time:"H:i" }}</p>
+            <p class="text-sm text-slate-500 dark:text-zinc-400">
+              {{ session.count }} pataditas{% if session.duration_minutes is not None %} · {{ session.duration_minutes }} min{% endif %}{% if session.time_to_goal_seconds is not None and session.time_to_goal_seconds != session.duration_seconds %} · meta en {{ session.time_to_goal_minutes }} min{% endif %}
+            </p>
+            {% if session.notes %}
+            <p class="text-sm text-slate-400 dark:text-zinc-500">{{ session.notes }}</p>
+            {% endif %}
+          </div>
+          <div class="flex shrink-0 items-center gap-3 text-sm">
+            <a href="{% url 'kick_session_edit' session.pk %}" class="text-slate-400 dark:text-zinc-500 hover:text-rose-500">Editar</a>
+            <form method="post" action="{% url 'kick_session_delete' session.pk %}"
+                  onsubmit="return confirm('¿Eliminar esta sesión?');">
+              {% csrf_token %}
+              <button type="submit" class="text-slate-400 dark:text-zinc-500 hover:text-red-500">Eliminar</button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endfor %}
+    {% else %}
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay pataditas registradas en los últimos 30 días.</p>
+    {% endif %}
+  </div>
+
+  {# Registro manual #}
+  <details class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm" {% if form.errors %}open{% endif %}>
+    <summary class="cursor-pointer p-5 font-semibold text-slate-800 dark:text-zinc-100">Registrar manualmente</summary>
+    <form method="post" class="px-6 pb-6">
       {% csrf_token %}
       <div class="space-y-4">
         {% for field in form %}
@@ -29,37 +141,6 @@
         </button>
       </div>
     </form>
-  </div>
-
-  {# Recientes #}
-  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
-    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 p-5 border-b border-slate-200 dark:border-zinc-700">Últimos 30 Días</h2>
-    {% if recent_sessions %}
-      {% regroup recent_sessions by date as sessions_by_day %}
-      {% for day in sessions_by_day %}
-      <h3 class="px-5 pt-4 pb-1 text-sm font-semibold text-slate-500 dark:text-zinc-400">{{ day.grouper|date:"l, d M" }}</h3>
-      <ul class="divide-y divide-slate-100 dark:divide-zinc-700">
-        {% for session in day.list %}
-        <li class="px-5 py-3 flex items-center gap-3">
-          {% if session.goal_reached %}
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">✓</span>
-          {% else %}
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-400 dark:text-zinc-500">–</span>
-          {% endif %}
-          <div>
-            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ session.started_at|time:"H:i" }}</p>
-            <p class="text-sm text-slate-500 dark:text-zinc-400">{{ session.count }} pataditas{% if session.duration_minutes is not None %} · {{ session.duration_minutes }} min{% endif %}</p>
-            {% if session.notes %}
-            <p class="text-sm text-slate-400 dark:text-zinc-500">{{ session.notes }}</p>
-            {% endif %}
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endfor %}
-    {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay pataditas registradas en los últimos 30 días.</p>
-    {% endif %}
-  </div>
+  </details>
 </div>
 {% endblock %}

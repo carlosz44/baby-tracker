@@ -1,14 +1,18 @@
+import json
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Profile
 
-from .forms import BirthPlanForm, KickSessionForm, WeeklyLogForm
+from .forms import BirthPlanForm, KickCounterForm, KickSessionForm, WeeklyLogForm
 from .models import BirthPlan, KickSession, WeeklyLog
+from .services import upsert_sessions
 
 
 @login_required
@@ -56,6 +60,51 @@ def kick_counter(request):
         form = KickSessionForm(initial={"started_at": now, "count": 10})
 
     return render(request, "baby/kick_counter.html", {"form": form, "recent_sessions": recent_sessions})
+
+
+@login_required
+@require_POST
+def kick_session_save(request):
+    try:
+        payload = json.loads(request.body)
+    except ValueError:
+        payload = None
+    if not isinstance(payload, dict):
+        return JsonResponse({"error": "Datos inválidos."}, status=400)
+
+    form = KickCounterForm(payload)
+    if not form.is_valid():
+        message = next(iter(form.errors.values()))[0]
+        return JsonResponse({"error": message}, status=400)
+
+    result = upsert_sessions([form.cleaned_data], source="counter", logged_by=request.user)
+    if result.conflicts:
+        return JsonResponse({"error": "Ya existe otra sesión con esa hora de inicio."}, status=409)
+    if result.created:
+        messages.success(request, "Sesión guardada.")
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def kick_session_edit(request, pk):
+    session = get_object_or_404(KickSession, pk=pk)
+    if request.method == "POST":
+        form = KickSessionForm(request.POST, instance=session)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Sesión actualizada.")
+            return redirect("kick_counter")
+    else:
+        form = KickSessionForm(instance=session)
+    return render(request, "baby/kick_session_form.html", {"form": form, "session": session})
+
+
+@login_required
+@require_POST
+def kick_session_delete(request, pk):
+    get_object_or_404(KickSession, pk=pk).delete()
+    messages.success(request, "Sesión eliminada.")
+    return redirect("kick_counter")
 
 
 @login_required

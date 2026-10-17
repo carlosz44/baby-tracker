@@ -69,16 +69,27 @@ class KickSession(models.Model):
         self.date = timezone.localdate(self.started_at)
         super().save(*args, **kwargs)
 
-    def set_goal_from_duration(self):
+    def set_goal(self):
         self.goal_reached = self.count >= self.target
-        # With extra kicks past the target, the time to reach it is unknown.
-        self.time_to_goal_seconds = self.duration_seconds if self.count == self.target else None
+        if not self.goal_reached:
+            self.time_to_goal_seconds = None
+        elif self.kick_offsets:
+            self.time_to_goal_seconds = round(self.kick_offsets[self.target - 1])
+        else:
+            # Without per-kick times, extra kicks past the target hide when it was reached.
+            self.time_to_goal_seconds = self.duration_seconds if self.count == self.target else None
 
     @property
     def duration_minutes(self):
         if self.duration_seconds is None:
             return None
         return round(self.duration_seconds / 60)
+
+    @property
+    def time_to_goal_minutes(self):
+        if self.time_to_goal_seconds is None:
+            return None
+        return round(self.time_to_goal_seconds / 60)
 
 
 class BirthPlan(models.Model):

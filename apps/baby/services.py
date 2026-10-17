@@ -4,7 +4,15 @@ from django.db import transaction
 
 from .models import KickSession
 
-COMPARED_FIELDS = ("count", "target", "goal_reached", "time_to_goal_seconds", "duration_seconds", "notes")
+COMPARED_FIELDS = (
+    "count",
+    "target",
+    "goal_reached",
+    "time_to_goal_seconds",
+    "duration_seconds",
+    "kick_offsets",
+    "notes",
+)
 
 
 @dataclass
@@ -24,11 +32,12 @@ def upsert_sessions(rows, *, source, logged_by=None):
                 started_at=row["started_at"],
                 count=row["count"],
                 duration_seconds=row.get("duration_seconds"),
+                kick_offsets=row.get("kick_offsets", []),
                 notes=row.get("notes", ""),
                 source=source,
                 logged_by=logged_by,
             )
-            incoming.set_goal_from_duration()
+            incoming.set_goal()
 
             current = existing.get(incoming.started_at)
             if current is None:

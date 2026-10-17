@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django import forms
+from django.utils import timezone
 
 from .models import BirthPlan, KickSession, WeeklyLog
 
@@ -68,14 +71,66 @@ class KickSessionForm(forms.ModelForm):
             "started_at": {"unique": "Ya existe una sesión que empezó a esa hora."},
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["duration_minutes"].initial = self.instance.duration_minutes
+
+    def clean_started_at(self):
+        started_at = self.cleaned_data["started_at"]
+        current = self.instance.started_at
+        # The input only shows minutes; keep stored seconds when the minute is unchanged.
+        if self.instance.pk and started_at == current.replace(second=0, microsecond=0):
+            return current
+        return started_at
+
     def save(self, commit=True):
         session = super().save(commit=False)
-        minutes = self.cleaned_data.get("duration_minutes")
-        session.duration_seconds = minutes * 60 if minutes else None
-        session.set_goal_from_duration()
+        if "duration_minutes" in self.changed_data:
+            minutes = self.cleaned_data["duration_minutes"]
+            session.duration_seconds = minutes * 60 if minutes else None
+        if {"count", "duration_minutes"} & set(self.changed_data):
+            # Manual corrections override per-kick times from the counter.
+            session.kick_offsets = []
+        session.set_goal()
         if commit:
             session.save()
         return session
+
+
+class KickCounterForm(forms.Form):
+    """Validates the JSON payload posted by the in-app counter."""
+
+    started_at = forms.DateTimeField()
+    duration_seconds = forms.IntegerField(min_value=0, max_value=24 * 60 * 60)
+    kick_offsets = forms.JSONField(required=False)
+    notes = forms.CharField(required=False, max_length=1000)
+
+    def clean_started_at(self):
+        started_at = self.cleaned_data["started_at"]
+        if started_at > timezone.now() + timedelta(minutes=1):
+            raise forms.ValidationError("La sesión no puede empezar en el futuro.")
+        return started_at
+
+    def clean_kick_offsets(self):
+        offsets = self.cleaned_data["kick_offsets"] or []
+        valid = isinstance(offsets, list) and len(offsets) <= 1000 and all(
+            isinstance(o, (int, float)) and not isinstance(o, bool) and o >= 0 for o in offsets
+        )
+        if not valid or offsets != sorted(offsets):
+            raise forms.ValidationError("Tiempos de pataditas inválidos.")
+        return [round(o, 1) for o in offsets]
+
+    def clean(self):
+        cleaned = super().clean()
+        offsets = cleaned.get("kick_offsets")
+        duration = cleaned.get("duration_seconds")
+        if offsets is None or duration is None:
+            return cleaned
+        if offsets and offsets[-1] > duration + 1:
+            raise forms.ValidationError("La duración es menor que el tiempo de la última patadita.")
+        cleaned["count"] = len(offsets)
+        return cleaned
 
 
 class BirthPlanForm(forms.ModelForm):

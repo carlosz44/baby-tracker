@@ -143,3 +143,147 @@ def test_load_kick_sessions_dry_run_writes_nothing(tmp_path):
 
     assert "[dry run] created 1" in out.getvalue()
     assert not KickSession.objects.exists()
+
+
+OFFSETS_TO_GOAL = [5.2, 30.0, 61.5, 90.0, 120.4, 150.0, 200.0, 250.0, 300.0, 333.4]
+
+
+def post_counter_session(client, **overrides):
+    payload = {
+        "started_at": "2026-10-01T20:00:42.500Z",
+        "duration_seconds": 340,
+        "kick_offsets": OFFSETS_TO_GOAL,
+        "notes": "",
+        **overrides,
+    }
+    return client.post("/baby/kick-counter/sessions/", json.dumps(payload), content_type="application/json")
+
+
+@pytest.mark.django_db
+def test_counter_save_creates_session(client, user):
+    response = post_counter_session(client)
+
+    assert response.status_code == 200
+    session = KickSession.objects.get()
+    assert session.source == "counter"
+    assert session.count == 10
+    assert session.goal_reached
+    assert session.time_to_goal_seconds == 333
+    assert session.duration_seconds == 340
+    assert session.kick_offsets == OFFSETS_TO_GOAL
+    assert session.date == date(2026, 10, 1)
+    assert session.logged_by == user
+
+
+@pytest.mark.django_db
+def test_counter_save_past_target_uses_tenth_kick(client):
+    post_counter_session(client, kick_offsets=OFFSETS_TO_GOAL + [400.0, 420.0], duration_seconds=430)
+
+    session = KickSession.objects.get()
+    assert session.count == 12
+    assert session.time_to_goal_seconds == 333
+    assert session.duration_seconds == 430
+
+
+@pytest.mark.django_db
+def test_counter_save_below_target(client):
+    post_counter_session(client, kick_offsets=OFFSETS_TO_GOAL[:4], duration_seconds=7200)
+
+    session = KickSession.objects.get()
+    assert session.count == 4
+    assert not session.goal_reached
+    assert session.time_to_goal_seconds is None
+
+
+@pytest.mark.django_db
+def test_counter_save_is_idempotent(client):
+    assert post_counter_session(client).status_code == 200
+    assert post_counter_session(client).status_code == 200
+    assert KickSession.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_counter_save_conflict(client):
+    post_counter_session(client)
+    response = post_counter_session(client, notes="otra")
+
+    assert response.status_code == 409
+    assert KickSession.objects.get().notes == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"kick_offsets": [10.0, 5.0]},
+        {"kick_offsets": [-1.0]},
+        {"kick_offsets": ["5"]},
+        {"kick_offsets": OFFSETS_TO_GOAL, "duration_seconds": 100},
+        {"started_at": "2999-01-01T00:00:00Z"},
+        {"duration_seconds": None},
+    ],
+)
+def test_counter_save_rejects_invalid_payload(client, overrides):
+    response = post_counter_session(client, **overrides)
+
+    assert response.status_code == 400
+    assert response.json()["error"]
+    assert not KickSession.objects.exists()
+
+
+@pytest.mark.django_db
+def test_counter_save_rejects_non_object_body(client):
+    response = client.post("/baby/kick-counter/sessions/", "[]", content_type="application/json")
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_counter_save_requires_post(client):
+    assert client.get("/baby/kick-counter/sessions/").status_code == 405
+
+
+@pytest.mark.django_db
+def test_edit_notes_keeps_counter_data(client):
+    post_counter_session(client)
+    session = KickSession.objects.get()
+    assert client.get(f"/baby/kick-counter/{session.pk}/edit/").status_code == 200
+
+    response = client.post(
+        f"/baby/kick-counter/{session.pk}/edit/",
+        {"started_at": "2026-10-01T15:00", "count": 10, "duration_minutes": 6, "notes": "Después de cenar"},
+    )
+
+    assert response.status_code == 302
+    session.refresh_from_db()
+    assert session.notes == "Después de cenar"
+    assert session.started_at == datetime(2026, 10, 1, 20, 0, 42, 500000, tzinfo=UTC)
+    assert session.duration_seconds == 340
+    assert session.kick_offsets == OFFSETS_TO_GOAL
+    assert session.time_to_goal_seconds == 333
+
+
+@pytest.mark.django_db
+def test_edit_count_clears_kick_offsets(client):
+    post_counter_session(client)
+    session = KickSession.objects.get()
+
+    client.post(
+        f"/baby/kick-counter/{session.pk}/edit/",
+        {"started_at": "2026-10-01T15:00", "count": 8, "duration_minutes": 6, "notes": ""},
+    )
+
+    session.refresh_from_db()
+    assert session.kick_offsets == []
+    assert session.count == 8
+    assert not session.goal_reached
+
+
+@pytest.mark.django_db
+def test_delete_session(client):
+    post_counter_session(client)
+    session = KickSession.objects.get()
+
+    response = client.post(f"/baby/kick-counter/{session.pk}/delete/")
+
+    assert response.status_code == 302
+    assert not KickSession.objects.exists()
