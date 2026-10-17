@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -6,7 +8,8 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from apps.appointments.models import Appointment
-from apps.baby.models import WeeklyLog
+from apps.baby.analytics import OVERVIEW_DAYS, recent_overview
+from apps.baby.models import KickSession, WeeklyLog
 from apps.files.models import PregnancyFile
 
 from .forms import ProfileForm
@@ -24,11 +27,15 @@ def dashboard(request):
     last_log = WeeklyLog.objects.order_by("-date").first()
     recent_files = PregnancyFile.objects.order_by("-uploaded_at")[:4]
 
+    now = timezone.now()
+    recent_kicks = KickSession.objects.filter(started_at__gte=now - timedelta(days=OVERVIEW_DAYS)).order_by("started_at")
+
     context = {
         "profile": profile,
         "upcoming_appointments": upcoming_appointments,
         "last_log": last_log,
         "recent_files": recent_files,
+        "kicks": recent_overview(recent_kicks, now=now),
     }
     return render(request, "dashboard.html", context)
 

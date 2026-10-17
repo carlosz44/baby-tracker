@@ -1,0 +1,16 @@
+<div role="status" class="flex gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+  <svg class="h-5 w-5 shrink-0 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+  </svg>
+  <div>
+    <p class="font-semibold">Atención</p>
+    <p class="mt-0.5">
+      {% if alert.session.goal_reached %}
+        La sesión del {{ alert.label }} tardó {{ alert.minutes|floatformat:"-1" }} min en llegar a 10 pataditas, más del doble de lo habitual ({{ alert.baseline|floatformat:"-1" }} min).
+      {% else %}
+        La sesión del {{ alert.label }} pasó 2 horas sin llegar a 10 pataditas.
+      {% endif %}
+      Si notas que el bebé se mueve menos de lo normal, comunícate con tu médico.
+    </p>
+  </div>
+</div>

@@ -50,6 +50,44 @@
     </div>
   </div>
 
+  {# Pataditas #}
+  {% if kicks.alert %}
+    {% include "baby/_kick_alert.html" with alert=kicks.alert %}
+  {% endif %}
+  <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-700">
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Pataditas</h2>
+      <a href="{% url 'kick_stats' %}" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Ver análisis</a>
+    </div>
+    {% if kicks.last %}
+      <div class="grid grid-cols-3 divide-x divide-slate-100 dark:divide-zinc-700">
+        <div class="p-4">
+          <p class="text-xs text-slate-500 dark:text-zinc-400">Última sesión</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-800 dark:text-zinc-100">{{ kicks.last.start|date:"H:i" }}</p>
+          <p class="text-xs text-slate-400 dark:text-zinc-500">
+            {{ kicks.last.start|date:"D j M" }}{% if kicks.last.minutes is not None %} <span class="whitespace-nowrap">· {{ kicks.last.minutes|floatformat:"-1" }} min</span>{% endif %}
+          </p>
+        </div>
+        <div class="p-4">
+          <p class="text-xs text-slate-500 dark:text-zinc-400">Hoy</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-800 dark:text-zinc-100">{{ kicks.today }}</p>
+          <p class="text-xs text-slate-400 dark:text-zinc-500">sesi{{ kicks.today|pluralize:"ón,ones" }}</p>
+        </div>
+        <div class="p-4">
+          <p class="text-xs text-slate-500 dark:text-zinc-400">Mediana 7 días</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-800 dark:text-zinc-100">
+            {% if kicks.summary.median is not None %}{{ kicks.summary.median|floatformat:"-1" }}{% else %}—{% endif %}
+          </p>
+          <p class="text-xs text-slate-400 dark:text-zinc-500">min hasta 10</p>
+        </div>
+      </div>
+    {% else %}
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">
+        Aún no hay sesiones. <a href="{% url 'kick_counter' %}" class="text-rose-500 dark:text-rose-400 hover:underline">Empezar una sesión</a>
+      </p>
+    {% endif %}
+  </div>
+
   {# Upcoming appointments #}
   <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
     <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-700">

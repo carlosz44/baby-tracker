@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Análisis de Pataditas — Baby Tracker{% endblock %}
+{% block header %}Análisis de Pataditas{% endblock %}
+
+{% block extra_head %}
+<style>
+  .viz-root {
+    --viz-series: #2a78d6;
+    --viz-series-hover: #5598e7;
+    --viz-muted-mark: #898781;
+    --viz-warning: #fab219;
+    --viz-surface: #ffffff;
+    --viz-text: #64748b;
+    --viz-text-strong: #1e293b;
+    --viz-grid: #e2e8f0;
+    --viz-axis: #cbd5e1;
+    --viz-level-0: #f1f5f9;
+    --viz-level-1: #86b6ef;
+    --viz-level-2: #2a78d6;
+    --viz-level-3: #184f95;
+    --viz-level-1-ink: #0b0b0b;
+    --viz-level-2-ink: #ffffff;
+    --viz-level-3-ink: #ffffff;
+  }
+  .dark .viz-root {
+    --viz-series: #3987e5;
+    --viz-series-hover: #6da7ec;
+    --viz-surface: #27272a;
+    --viz-text: #a1a1aa;
+    --viz-text-strong: #f4f4f5;
+    --viz-grid: #3f3f46;
+    --viz-axis: #52525b;
+    --viz-level-0: #3f3f46;
+    --viz-level-1: #2a78d6;
+    --viz-level-2: #5598e7;
+    --viz-level-3: #9ec5f4;
+    --viz-level-1-ink: #ffffff;
+    --viz-level-2-ink: #0b0b0b;
+    --viz-level-3-ink: #0b0b0b;
+  }
+  .viz-cell { background: var(--viz-level-0); color: var(--viz-text); }
+  .viz-cell[data-level="1"] { background: var(--viz-level-1); color: var(--viz-level-1-ink); }
+  .viz-cell[data-level="2"] { background: var(--viz-level-2); color: var(--viz-level-2-ink); }
+  .viz-cell[data-level="3"] { background: var(--viz-level-3); color: var(--viz-level-3-ink); }
+  .viz-cell[data-today] { box-shadow: 0 0 0 2px var(--viz-surface), 0 0 0 4px var(--viz-text-strong); }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+        integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD"
+        crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script src="{% static 'js/kick_stats.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="viz-root max-w-lg mx-auto space-y-6">
+  {% include "baby/_kick_tabs.html" with active="stats" %}
+
+  {% if report.alert %}
+    {% include "baby/_kick_alert.html" with alert=report.alert %}
+  {% endif %}
+
+  {% if not report.has_data %}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6 text-center">
+      <p class="text-slate-500 dark:text-zinc-400">Todavía no hay sesiones registradas.</p>
+      <a href="{% url 'kick_counter' %}" class="mt-2 inline-block text-sm text-rose-500 hover:text-rose-600">Empezar una sesión</a>
+    </div>
+  {% else %}
+
+  {# Últimos 7 días #}
+  <section aria-labelledby="summary-title">
+    <h2 id="summary-title" class="mb-2 text-sm font-semibold text-slate-500 dark:text-zinc-400">Últimos 7 días</h2>
+    <div class="grid grid-cols-3 gap-3">
+      <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4">
+        <p class="text-xs text-slate-500 dark:text-zinc-400">Mediana hasta 10</p>
+        <p class="mt-1 text-2xl font-semibold text-slate-800 dark:text-zinc-100">
+          {% if report.summary.median is not None %}{{ report.summary.median|floatformat:"-1" }} <span class="text-base font-normal">min</span>{% else %}—{% endif %}
+        </p>
+        {% if report.summary.delta is not None %}
+        <p class="mt-1 text-xs text-slate-500 dark:text-zinc-400">{% if report.summary.delta > 0 %}+{% endif %}{{ report.summary.delta|floatformat:"-1" }} min vs. semana previa</p>
+        {% endif %}
+      </div>
+      <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4">
+        <p class="text-xs text-slate-500 dark:text-zinc-400">Sesiones</p>
+        <p class="mt-1 text-2xl font-semibold text-slate-800 dark:text-zinc-100">{{ report.summary.sessions }}</p>
+      </div>
+      <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4">
+        <p class="text-xs text-slate-500 dark:text-zinc-400">Días con registro</p>
+        <p class="mt-1 text-2xl font-semibold text-slate-800 dark:text-zinc-100">{{ report.summary.days }}<span class="text-base font-normal text-slate-400 dark:text-zinc-500">/7</span></p>
+      </div>
+    </div>
+  </section>
+
+  {# Rango #}
+  <nav aria-label="Rango de fechas" class="flex gap-2 text-sm">
+    {% for key, label in range_options %}
+    <a href="?range={{ key }}"
+       {% if key == range_key %}aria-current="page"{% endif %}
+       class="rounded-full border px-3 py-1 transition {% if key == range_key %}border-slate-800 dark:border-zinc-100 bg-slate-800 dark:bg-zinc-100 text-white dark:text-zinc-900{% else %}border-slate-300 dark:border-zinc-600 text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </nav>
+
+  {# Tendencia #}
+  <figure class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-5">
+    <figcaption>
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Tiempo hasta 10 pataditas</h2>
+      <p class="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Cada punto es una sesión; la línea es la mediana de los últimos 7 días.</p>
+    </figcaption>
+    <div class="relative mt-4 h-64">
+      <canvas id="trend-chart" role="img" aria-label="Minutos hasta 10 pataditas por sesión, con la mediana de 7 días. Los datos están en la tabla de abajo."></canvas>
+    </div>
+  </figure>
+
+  {# Hora del día #}
+  <figure class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-5">
+    <figcaption>
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Según la hora del día</h2>
+      <p class="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Mediana de minutos hasta 10 pataditas en cada franja.</p>
+    </figcaption>
+    <div class="relative mt-4 h-56">
+      <canvas id="hours-chart" role="img" aria-label="Mediana de minutos hasta 10 pataditas por franja horaria. Los datos están en la tabla de abajo."></canvas>
+    </div>
+  </figure>
+
+  {# Constancia #}
+  <figure class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm p-5">
+    <figcaption>
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Constancia</h2>
+      <p class="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Sesiones por día desde el {{ report.start_day|date:"j M" }}.</p>
+    </figcaption>
+    <div class="mt-4 grid grid-cols-7 gap-1.5 text-center text-xs">
+      {% for name in weekday_names %}
+      <div class="pb-1 font-medium text-slate-400 dark:text-zinc-500" aria-hidden="true">{{ name }}</div>
+      {% endfor %}
+      {% for week in report.weeks %}
+        {% for cell in week %}
+          {% if cell.in_range %}
+          <div class="viz-cell flex aspect-square items-center justify-center rounded-md tabular-nums"
+               data-level="{{ cell.level }}" {% if cell.is_today %}data-today{% endif %} role="img"
+               title="{{ cell.date|date:'D j M' }}: {{ cell.count }} sesi{{ cell.count|pluralize:'ón,ones' }}"
+               aria-label="{{ cell.date|date:'l j \d\e F' }}: {{ cell.count }} sesi{{ cell.count|pluralize:'ón,ones' }}">
+            {{ cell.date.day }}
+          </div>
+          {% else %}
+          <div aria-hidden="true"></div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+    <div class="mt-4 flex items-center justify-end gap-1.5 text-xs text-slate-500 dark:text-zinc-400" aria-hidden="true">
+      <span class="mr-1">Sesiones</span>
+      {% for level, label in level_legend %}
+      <span class="viz-cell inline-flex h-5 w-5 items-center justify-center rounded" data-level="{{ level }}">{{ label }}</span>
+      {% endfor %}
+    </div>
+  </figure>
+
+  {# Tabla #}
+  <details class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
+    <summary class="cursor-pointer p-5 font-semibold text-slate-800 dark:text-zinc-100">Ver datos en tabla</summary>
+    <div class="overflow-x-auto px-5 pb-5">
+      <table class="w-full text-left text-sm tabular-nums">
+        <caption class="sr-only">Sesiones en el rango seleccionado</caption>
+        <thead class="text-xs text-slate-500 dark:text-zinc-400">
+          <tr>
+            <th scope="col" class="py-2 pr-3 font-medium">Inicio</th>
+            <th scope="col" class="py-2 pr-3 font-medium">Pataditas</th>
+            <th scope="col" class="py-2 pr-3 font-medium">Min hasta 10</th>
+            <th scope="col" class="py-2 pr-3 font-medium">Habitual</th>
+            <th scope="col" class="py-2 font-medium">Sem.</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-zinc-700 text-slate-700 dark:text-zinc-200">
+          {% for row in report.rows %}
+          <tr>
+            <td class="py-2 pr-3 whitespace-nowrap">{{ row.label }}</td>
+            <td class="py-2 pr-3">{{ row.session.count }}</td>
+            <td class="py-2 pr-3 whitespace-nowrap">
+              {% if row.minutes is not None %}{{ row.minutes|floatformat:"-1" }}{% else %}—{% endif %}
+              {% if row.flagged %}<span class="ml-1 text-xs font-medium text-amber-700 dark:text-amber-300">▲ lenta</span>{% endif %}
+            </td>
+            <td class="py-2 pr-3">{% if row.baseline is not None %}{{ row.baseline|floatformat:"-1" }}{% else %}—{% endif %}</td>
+            <td class="py-2">{{ row.week|default_if_none:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <table class="mt-6 w-full text-left text-sm tabular-nums">
+        <caption class="pb-2 text-left text-xs font-medium text-slate-500 dark:text-zinc-400">Por franja horaria</caption>
+        <tbody class="divide-y divide-slate-100 dark:divide-zinc-700 text-slate-700 dark:text-zinc-200">
+          {% for bucket in report.chart.buckets %}
+          <tr>
+            <th scope="row" class="py-2 pr-3 font-normal">{{ bucket.label }} <span class="text-slate-400 dark:text-zinc-500">({{ bucket.hours }})</span></th>
+            <td class="py-2 pr-3">{% if bucket.median is not None %}{{ bucket.median|floatformat:"-1" }} min{% else %}—{% endif %}</td>
+            <td class="py-2">{{ bucket.count }} sesi{{ bucket.count|pluralize:"ón,ones" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <p class="text-xs text-slate-400 dark:text-zinc-500">
+    Una sesión se marca como lenta cuando tarda más del doble de la mediana de los 7 días anteriores (con al menos 3 sesiones), o cuando pasan 2 horas sin llegar a 10. Es una guía, no un diagnóstico.
+  </p>
+
+  {{ report.chart|json_script:"kick-stats-data" }}
+  {% endif %}
+</div>
+{% endblock %}

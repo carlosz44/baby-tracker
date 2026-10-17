@@ -7,4 +7,8 @@
      class="flex-1 rounded-lg py-2 text-center transition {% if active == 'history' %}bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm{% else %}text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200{% endif %}">
     Historial
   </a>
+  <a href="{% url 'kick_stats' %}"
+     class="flex-1 rounded-lg py-2 text-center transition {% if active == 'stats' %}bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm{% else %}text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200{% endif %}">
+    Análisis
+  </a>
 </nav>

@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Profile
 
+from .analytics import RANGES, build_report
 from .forms import BirthPlanForm, KickCounterForm, KickSessionForm, WeeklyLogForm
 from .models import BirthPlan, KickSession, WeeklyLog
 from .services import upsert_sessions
@@ -66,6 +67,28 @@ def kick_history(request):
         form = KickSessionForm(initial={"started_at": now, "count": 10})
 
     return render(request, "baby/kick_history.html", {"form": form, "recent_sessions": recent_sessions})
+
+
+@login_required
+def kick_stats(request):
+    range_key = request.GET.get("range", "30")
+    if range_key not in RANGES:
+        range_key = "30"
+    profile = Profile.objects.first()
+    report = build_report(
+        KickSession.objects.order_by("started_at"),
+        now=timezone.now(),
+        lmp=profile.due_date if profile else None,
+        days=RANGES[range_key],
+    )
+    context = {
+        "report": report,
+        "range_key": range_key,
+        "range_options": [("14", "14 días"), ("30", "30 días"), ("all", "Todo")],
+        "weekday_names": "LMXJVSD",
+        "level_legend": [(0, "0"), (1, "1"), (2, "2"), (3, "3+")],
+    }
+    return render(request, "baby/kick_stats.html", context)
 
 
 @login_required
