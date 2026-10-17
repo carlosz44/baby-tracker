@@ -10,6 +10,8 @@
 
 {% block content %}
 <div class="max-w-lg mx-auto space-y-6">
+  {% include "baby/_kick_tabs.html" with active="counter" %}
+
   {# Contador #}
   <div id="kick-counter"
        data-save-url="{% url 'kick_session_save' %}"
@@ -76,71 +78,23 @@
     </dialog>
   </div>
 
-  {# Recientes #}
+  {# Hoy #}
   <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
-    <h2 class="font-semibold text-slate-800 dark:text-zinc-100 p-5 border-b border-slate-200 dark:border-zinc-700">Últimos 30 Días</h2>
-    {% if recent_sessions %}
-      {% regroup recent_sessions by date as sessions_by_day %}
-      {% for day in sessions_by_day %}
-      <h3 class="px-5 pt-4 pb-1 text-sm font-semibold text-slate-500 dark:text-zinc-400">{{ day.grouper|date:"l, d M" }}</h3>
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-700">
+      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Hoy</h2>
+      <a href="{% url 'kick_history' %}" class="text-sm text-rose-500 hover:text-rose-600">Ver historial</a>
+    </div>
+    {% if today_sessions %}
       <ul class="divide-y divide-slate-100 dark:divide-zinc-700">
-        {% for session in day.list %}
+        {% for session in today_sessions %}
         <li class="px-5 py-3 flex items-center gap-3">
-          {% if session.goal_reached %}
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">✓</span>
-          {% else %}
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-400 dark:text-zinc-500">–</span>
-          {% endif %}
-          <div class="min-w-0 flex-1">
-            <p class="font-medium text-slate-700 dark:text-zinc-200">{{ session.started_at|time:"H:i" }}</p>
-            <p class="text-sm text-slate-500 dark:text-zinc-400">
-              {{ session.count }} pataditas{% if session.duration_minutes is not None %} · {{ session.duration_minutes }} min{% endif %}{% if session.time_to_goal_seconds is not None and session.time_to_goal_seconds != session.duration_seconds %} · meta en {{ session.time_to_goal_minutes }} min{% endif %}
-            </p>
-            {% if session.notes %}
-            <p class="text-sm text-slate-400 dark:text-zinc-500">{{ session.notes }}</p>
-            {% endif %}
-          </div>
-          <div class="flex shrink-0 items-center gap-3 text-sm">
-            <a href="{% url 'kick_session_edit' session.pk %}" class="text-slate-400 dark:text-zinc-500 hover:text-rose-500">Editar</a>
-            <form method="post" action="{% url 'kick_session_delete' session.pk %}"
-                  onsubmit="return confirm('¿Eliminar esta sesión?');">
-              {% csrf_token %}
-              <button type="submit" class="text-slate-400 dark:text-zinc-500 hover:text-red-500">Eliminar</button>
-            </form>
-          </div>
+          {% include "baby/_kick_session_summary.html" %}
         </li>
         {% endfor %}
       </ul>
-      {% endfor %}
     {% else %}
-      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">No hay pataditas registradas en los últimos 30 días.</p>
+      <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">Aún no hay sesiones hoy.</p>
     {% endif %}
   </div>
-
-  {# Registro manual #}
-  <details class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm" {% if form.errors %}open{% endif %}>
-    <summary class="cursor-pointer p-5 font-semibold text-slate-800 dark:text-zinc-100">Registrar manualmente</summary>
-    <form method="post" class="px-6 pb-6">
-      {% csrf_token %}
-      <div class="space-y-4">
-        {% for field in form %}
-        <div>
-          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
-            {{ field.label }}
-          </label>
-          {{ field }}
-          {% if field.errors %}
-            <p class="text-sm text-red-500 mt-1">{{ field.errors.0 }}</p>
-          {% endif %}
-        </div>
-        {% endfor %}
-
-        <button type="submit"
-                class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
-          Guardar
-        </button>
-      </div>
-    </form>
-  </details>
 </div>
 {% endblock %}

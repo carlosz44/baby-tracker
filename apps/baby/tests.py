@@ -1,6 +1,6 @@
 import io
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from django.core.management import call_command
@@ -48,17 +48,27 @@ def test_weekly_log_list_view(client):
 
 
 @pytest.mark.django_db
-def test_kick_counter_view(client):
+def test_kick_counter_shows_only_today(client):
     KickSession.objects.create(started_at=timezone.now(), count=10, notes="Después de cenar")
+    KickSession.objects.create(started_at=timezone.now() - timedelta(days=2), count=10, notes="Antes de dormir")
     response = client.get("/baby/kick-counter/")
     assert response.status_code == 200
     assert "Después de cenar" in response.content.decode()
+    assert "Antes de dormir" not in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_kick_history_view(client):
+    KickSession.objects.create(started_at=timezone.now() - timedelta(days=2), count=10, notes="Antes de dormir")
+    response = client.get("/baby/kick-counter/history/")
+    assert response.status_code == 200
+    assert "Antes de dormir" in response.content.decode()
 
 
 @pytest.mark.django_db
 def test_kick_counter_post_sets_goal_fields(client, user):
     response = client.post(
-        "/baby/kick-counter/",
+        "/baby/kick-counter/history/",
         {"started_at": "2026-10-16T15:30", "count": 10, "duration_minutes": 7, "notes": ""},
     )
     assert response.status_code == 302
@@ -74,7 +84,7 @@ def test_kick_counter_post_sets_goal_fields(client, user):
 
 @pytest.mark.django_db
 def test_kick_counter_post_past_target_has_no_time_to_goal(client):
-    client.post("/baby/kick-counter/", {"started_at": "2026-10-16T15:30", "count": 14, "duration_minutes": 12})
+    client.post("/baby/kick-counter/history/", {"started_at": "2026-10-16T15:30", "count": 14, "duration_minutes": 12})
     session = KickSession.objects.get()
     assert session.goal_reached
     assert session.time_to_goal_seconds is None
@@ -83,8 +93,8 @@ def test_kick_counter_post_past_target_has_no_time_to_goal(client):
 @pytest.mark.django_db
 def test_kick_counter_post_rejects_duplicate_start(client):
     data = {"started_at": "2026-10-16T15:30", "count": 10, "duration_minutes": 7}
-    client.post("/baby/kick-counter/", data)
-    response = client.post("/baby/kick-counter/", data)
+    client.post("/baby/kick-counter/history/", data)
+    response = client.post("/baby/kick-counter/history/", data)
     assert response.status_code == 200
     assert "Ya existe una sesión" in response.content.decode()
     assert KickSession.objects.count() == 1

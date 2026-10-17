@@ -44,6 +44,12 @@ def weekly_log_create(request):
 
 @login_required
 def kick_counter(request):
+    today_sessions = KickSession.objects.filter(date=timezone.localdate())
+    return render(request, "baby/kick_counter.html", {"today_sessions": today_sessions})
+
+
+@login_required
+def kick_history(request):
     since = timezone.localdate() - timedelta(days=30)
     recent_sessions = KickSession.objects.filter(date__gte=since)
 
@@ -54,12 +60,12 @@ def kick_counter(request):
             session.logged_by = request.user
             session.save()
             messages.success(request, "Pataditas registradas.")
-            return redirect("kick_counter")
+            return redirect("kick_history")
     else:
         now = timezone.localtime().replace(second=0, microsecond=0)
         form = KickSessionForm(initial={"started_at": now, "count": 10})
 
-    return render(request, "baby/kick_counter.html", {"form": form, "recent_sessions": recent_sessions})
+    return render(request, "baby/kick_history.html", {"form": form, "recent_sessions": recent_sessions})
 
 
 @login_required
@@ -93,7 +99,7 @@ def kick_session_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Sesión actualizada.")
-            return redirect("kick_counter")
+            return redirect("kick_history")
     else:
         form = KickSessionForm(instance=session)
     return render(request, "baby/kick_session_form.html", {"form": form, "session": session})
@@ -104,7 +110,7 @@ def kick_session_edit(request, pk):
 def kick_session_delete(request, pk):
     get_object_or_404(KickSession, pk=pk).delete()
     messages.success(request, "Sesión eliminada.")
-    return redirect("kick_counter")
+    return redirect("kick_history")
 
 
 @login_required

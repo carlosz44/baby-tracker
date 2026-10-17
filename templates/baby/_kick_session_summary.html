@@ -1,0 +1,14 @@
+{% if session.goal_reached %}
+<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">✓</span>
+{% else %}
+<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-700 text-slate-400 dark:text-zinc-500">–</span>
+{% endif %}
+<div class="min-w-0 flex-1 text-left">
+  <p class="font-medium text-slate-700 dark:text-zinc-200">{{ session.started_at|time:"H:i" }}</p>
+  <p class="text-sm text-slate-500 dark:text-zinc-400">
+    {{ session.count }} pataditas{% if session.duration_minutes is not None %} · {{ session.duration_minutes }} min{% endif %}{% if session.time_to_goal_seconds is not None and session.time_to_goal_seconds != session.duration_seconds %} · meta en {{ session.time_to_goal_minutes }} min{% endif %}
+  </p>
+  {% if session.notes %}
+  <p class="text-sm text-slate-400 dark:text-zinc-500">{{ session.notes }}</p>
+  {% endif %}
+</div>
