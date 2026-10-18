@@ -1,0 +1,12 @@
+<a
+  href="{{ href }}"
+  {% if nav_section == section %}aria-current="page"{% endif %}
+  class="flex flex-col items-center gap-1 text-[11px] {% if nav_section == section %}font-semibold text-rose-600 dark:text-rose-400{% else %}text-slate-500 dark:text-zinc-400{% endif %}"
+>
+  <span class="flex h-8 w-14 items-center justify-center rounded-full transition-colors {% if nav_section == section %}bg-rose-100 dark:bg-rose-500/20{% endif %}">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="{{ icon }}" />
+    </svg>
+  </span>
+  {{ label }}
+</a>

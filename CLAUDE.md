@@ -57,9 +57,9 @@ Split settings in `config/settings/`: `base.py` (shared), `local.py` (debug tool
 
 ### Frontend
 
-- Templates in `templates/` (not per-app). `base.html` has sidebar nav (desktop) + bottom nav (mobile).
+- Templates in `templates/` (not per-app). `base.html` has sidebar nav (desktop) + bottom nav (mobile). The mobile bottom nav holds only the 5 main destinations (`partials/_bottom_nav_item.html`; active item gets a pill, driven by the `nav_section` context processor in `apps/accounts/context_processors.py`) and pads for the iPhone home indicator via `env(safe-area-inset-bottom)` (`viewport-fit=cover`). The mobile top bar has Avisos (with badge) + Perfil; the theme switch and logout live on the profile page.
 - Tailwind CSS v4 via standalone CLI (no Node.js). Source: `static/css/input.css`, output: `static/css/output.css` (gitignored). `input.css` contains `@import "tailwindcss";` and must be excluded from `collectstatic` with `--ignore="input.css"` — otherwise `ManifestStaticFilesStorage` tries to resolve the import and 500s.
-- Dark mode via `class` strategy with `localStorage` persistence. Dark palette uses **zinc** (neutral gray); light uses **slate** (blue-tinged gray).
+- Dark mode via `class` strategy with `localStorage` persistence (set from the Claro/Oscuro switch on `/accounts/profile/`). Dark palette uses **zinc** (neutral gray); light uses **slate** (blue-tinged gray).
 - HTMX loaded from CDN. django-htmx middleware enabled.
 - Forms rendered with crispy-forms + crispy-tailwind.
 
