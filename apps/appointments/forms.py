@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Count
 
 from .models import Appointment
 
@@ -32,3 +33,24 @@ class AppointmentForm(forms.ModelForm):
             "clinic": forms.TextInput(attrs={"class": INPUT_CLASSES}),
             "notes": forms.Textarea(attrs={"class": INPUT_CLASSES, "rows": 3}),
         }
+
+    SUGGESTED_FIELDS = ("doctor", "clinic")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        is_new = not self.is_bound and self.instance.pk is None
+        for name in self.SUGGESTED_FIELDS:
+            used = Appointment.objects.exclude(**{name: ""})
+            suggestions = [
+                row[name]
+                for row in used.values(name).annotate(n=Count("pk")).order_by("-n", name)
+            ]
+            if not suggestions:
+                continue
+            field = self.fields[name]
+            field.suggestions = suggestions
+            field.widget.attrs["list"] = f"{name}-options"
+            if is_new:
+                self.initial.setdefault(
+                    name, used.order_by("-date").values_list(name, flat=True).first()
+                )

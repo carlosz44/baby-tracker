@@ -15,6 +15,11 @@
             {{ field.label }}
           </label>
           {{ field }}
+          {% if field.field.suggestions %}
+          <datalist id="{{ field.name }}-options">
+            {% for option in field.field.suggestions %}<option value="{{ option }}"></option>{% endfor %}
+          </datalist>
+          {% endif %}
           {% if field.errors %}
             <p class="text-sm text-red-500 mt-1">{{ field.errors.0 }}</p>
           {% endif %}
