@@ -1,23 +1,23 @@
-<div class="grid h-full md:grid-cols-[minmax(0,1.45fr)_22rem]">
+<div class="grid h-full md:grid-cols-[minmax(0,1.45fr)_22rem] md:grid-rows-[minmax(0,1fr)]">
   <div class="border-b border-slate-200 bg-slate-100/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/60 md:border-b-0 md:border-r md:p-5">
     {% if file.is_image %}
-      <div class="flex min-h-72 items-center justify-center md:min-h-128">
+      <div class="flex min-h-72 items-center justify-center md:h-full md:min-h-0">
         <img src="{{ preview_url }}"
              alt="{{ file.title }}"
-             class="max-h-[55vh] w-full rounded-xl object-contain md:max-h-[70vh]" />
+             class="max-h-[55vh] w-full rounded-xl object-contain md:max-h-full" />
       </div>
     {% elif file.is_video %}
-      <div class="flex min-h-72 items-center justify-center md:min-h-128">
+      <div class="flex min-h-72 items-center justify-center md:h-full md:min-h-0">
         <video src="{{ preview_url }}"
                controls
                preload="metadata"
                playsinline
-               class="max-h-[55vh] w-full rounded-xl bg-black object-contain md:max-h-[70vh]">
+               class="max-h-[55vh] w-full rounded-xl bg-black object-contain md:max-h-full">
           Tu navegador no puede reproducir este video. Usa el botón de abajo para abrirlo directamente.
         </video>
       </div>
     {% elif file.is_pdf %}
-      <div class="h-[55vh] min-h-72 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 md:h-[70vh]">
+      <div class="h-[55vh] min-h-72 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 md:h-full md:min-h-0">
         <object data="{{ preview_url }}#view=FitH"
                 type="application/pdf"
                 class="h-full w-full">
@@ -33,7 +33,7 @@
         </object>
       </div>
     {% else %}
-      <div class="flex min-h-72 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center dark:border-zinc-600 dark:bg-zinc-800 md:min-h-128">
+      <div class="flex min-h-72 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center dark:border-zinc-600 dark:bg-zinc-800 md:h-full md:min-h-0">
         <div class="rounded-full bg-slate-100 p-4 text-slate-400 dark:bg-zinc-700 dark:text-zinc-500">
           <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
         </div>
@@ -45,7 +45,7 @@
     {% endif %}
   </div>
 
-  <div class="flex flex-col overflow-y-auto p-4 md:p-5">
+  <div class="flex flex-col p-4 md:p-5">
     <div class="mb-5">
       <p class="text-xs font-medium uppercase tracking-[0.2em] text-rose-500 dark:text-rose-400">
         {{ file.get_category_display }}
