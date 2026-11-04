@@ -1,9 +1,87 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.utils import timezone
 
 from apps.accounts.models import Profile
+
+BIRTH_UTC = datetime(2099, 3, 15, 12, 0, tzinfo=UTC)  # 07:00 in Lima
+
+
+def test_birth_countdown_splits_time_left(monkeypatch):
+    left = timedelta(days=2, hours=3, minutes=4, seconds=5)
+    monkeypatch.setattr(timezone, "now", lambda: BIRTH_UTC - left)
+    assert Profile(scheduled_birth_at=BIRTH_UTC).birth_countdown == {
+        "total_seconds": 183845,
+        "days": 2,
+        "hours": 3,
+        "minutes": 4,
+        "seconds": 5,
+    }
+
+
+def test_birth_countdown_stays_at_zero_once_passed(monkeypatch):
+    monkeypatch.setattr(timezone, "now", lambda: BIRTH_UTC + timedelta(days=1))
+    assert Profile(scheduled_birth_at=BIRTH_UTC).birth_countdown["total_seconds"] == 0
+
+
+def test_birth_countdown_is_none_without_date():
+    assert Profile().birth_countdown is None
+
+
+@pytest.mark.django_db
+def test_dashboard_shows_countdown_in_lima_time(client):
+    Profile.objects.create(
+        due_date=timezone.localdate(),
+        scheduled_birth_at=BIRTH_UTC,
+    )
+    html = client.get("/").content.decode()
+    assert 'data-birth-countdown="2099-03-15T07:00:00-05:00"' in html
+    assert "· 07:00" in html
+    assert "data-countdown-done hidden" in html
+    assert "js/birth_countdown" in html
+    # The FUR-based estimate would compete with the real date.
+    assert "Días para la Fecha Probable" not in html
+
+
+@pytest.mark.django_db
+def test_dashboard_without_birth_date_keeps_estimate_tile(client):
+    Profile.objects.create(due_date=timezone.localdate())
+    html = client.get("/").content.decode()
+    assert "data-birth-countdown" not in html
+    assert "js/birth_countdown" not in html
+    assert "Días para la Fecha Probable" in html
+
+
+@pytest.mark.django_db
+def test_dashboard_shows_final_message_once_birth_time_passed(client):
+    Profile.objects.create(scheduled_birth_at=timezone.now() - timedelta(minutes=1))
+    html = client.get("/").content.decode()
+    assert "data-countdown-clock hidden" in html
+    assert "data-countdown-done hidden" not in html
+
+
+@pytest.mark.django_db
+def test_profile_saves_birth_datetime_as_lima_time(client):
+    due_date = timezone.localdate()
+    response = client.post(
+        "/accounts/profile/",
+        {"due_date": due_date.isoformat(), "scheduled_birth_at": "2099-03-15T07:00"},
+    )
+    assert response.status_code == 302
+
+    profile = Profile.get_singleton()
+    assert profile.scheduled_birth_at == BIRTH_UTC
+    assert profile.due_date == due_date
+    assert 'value="2099-03-15T07:00"' in client.get("/accounts/profile/").content.decode()
+
+
+@pytest.mark.django_db
+def test_profile_can_clear_birth_datetime(client):
+    Profile.objects.create(scheduled_birth_at=BIRTH_UTC)
+    response = client.post("/accounts/profile/", {"due_date": "", "scheduled_birth_at": ""})
+    assert response.status_code == 302
+    assert Profile.get_singleton().scheduled_birth_at is None
 
 
 @pytest.mark.django_db
