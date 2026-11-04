@@ -23,6 +23,11 @@ class Profile(models.Model):
         null=True,
         blank=True,
     )
+    scheduled_birth_at = models.DateTimeField(
+        help_text="Scheduled date and time of birth, drives the dashboard countdown",
+        null=True,
+        blank=True,
+    )
 
     @classmethod
     def get_singleton(cls):
@@ -50,6 +55,25 @@ class Profile(models.Model):
         if not self.due_date:
             return None
         return self.due_date + timedelta(days=280)
+
+    @property
+    def birth_countdown(self):
+        """Time left until the scheduled birth, split for display. Stays at
+        zero once the moment has passed."""
+        if not self.scheduled_birth_at:
+            return None
+        remaining = (self.scheduled_birth_at - timezone.now()).total_seconds()
+        total_seconds = max(int(remaining), 0)
+        days, rest = divmod(total_seconds, 86400)
+        hours, rest = divmod(rest, 3600)
+        minutes, seconds = divmod(rest, 60)
+        return {
+            "total_seconds": total_seconds,
+            "days": days,
+            "hours": hours,
+            "minutes": minutes,
+            "seconds": seconds,
+        }
 
     def __str__(self):
         return f"Pregnancy (due {self.due_date})" if self.due_date else "Pregnancy"

@@ -34,10 +34,21 @@
 
         {% if profile.estimated_delivery_date %}
         <div class="p-4 bg-slate-50 dark:bg-zinc-700/50 rounded-lg">
-          <p class="text-sm text-slate-500 dark:text-zinc-400">Fecha probable de parto</p>
+          <p class="text-sm text-slate-500 dark:text-zinc-400">Fecha probable de parto (según FUR)</p>
           <p class="font-medium text-slate-700 dark:text-zinc-200">{{ profile.estimated_delivery_date|date:"d \d\e F \d\e Y" }}</p>
         </div>
         {% endif %}
+
+        <div>
+          <label for="id_scheduled_birth_at" class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
+            Fecha y hora programada del parto
+          </label>
+          {{ form.scheduled_birth_at }}
+          {% if form.scheduled_birth_at.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ form.scheduled_birth_at.errors.0 }}</p>
+          {% endif %}
+          <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">Se usa para la cuenta regresiva en Inicio. Hora de Lima.</p>
+        </div>
 
         <button type="submit"
                 class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
