@@ -136,6 +136,7 @@ jobs:
             DJANGO_SETTINGS_MODULE=config.settings.production
             EOF
             docker compose -f compose.prod.yml pull
+            docker compose -f compose.prod.yml up -d --wait db
+            docker compose -f compose.prod.yml run --rm --no-deps -T web python manage.py migrate --no-input
             docker compose -f compose.prod.yml up -d --remove-orphans
-            docker compose -f compose.prod.yml exec -T web python manage.py migrate --no-input
             docker image prune -f
