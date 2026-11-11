@@ -66,6 +66,18 @@ def test_dashboard_recent_files_open_preview(client, user, local_file_storage):
 
 
 @pytest.mark.django_db
+def test_dashboard_recent_video_shows_video_tile(client, user, local_file_storage):
+    create_pregnancy_file(
+        user,
+        file=SimpleUploadedFile("latido.mp4", b"fake-video-bytes", content_type="video/mp4"),
+    )
+
+    content = client.get("/").content.decode()
+
+    assert ">VIDEO<" in content
+
+
+@pytest.mark.django_db
 def test_dashboard_recent_files_link_to_file_list(client):
     content = client.get("/").content.decode()
 
