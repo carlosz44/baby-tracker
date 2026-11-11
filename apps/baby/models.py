@@ -3,36 +3,6 @@ from django.db import models
 from django.utils import timezone
 
 
-class WeeklyLog(models.Model):
-    MOOD_CHOICES = [
-        ("great", "Excelente"),
-        ("good", "Bien"),
-        ("ok", "Regular"),
-        ("bad", "Mal"),
-        ("terrible", "Muy mal"),
-    ]
-
-    week_number = models.PositiveSmallIntegerField()
-    date = models.DateField(auto_now_add=True)
-    weight_kg = models.DecimalField(max_digits=4, decimal_places=1)
-    blood_pressure_systolic = models.PositiveSmallIntegerField(null=True, blank=True)
-    blood_pressure_diastolic = models.PositiveSmallIntegerField(null=True, blank=True)
-    symptoms = models.TextField(blank=True)
-    mood = models.CharField(max_length=10, choices=MOOD_CHOICES)
-    notes = models.TextField(blank=True)
-    logged_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="weekly_logs",
-    )
-
-    class Meta:
-        ordering = ["-date", "-week_number"]
-
-    def __str__(self):
-        return f"Week {self.week_number} — {self.date}"
-
-
 class KickSession(models.Model):
     SOURCE_CHOICES = [
         ("manual", "Manual"),

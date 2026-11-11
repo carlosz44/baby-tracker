@@ -6,21 +6,10 @@ import pytest
 from django.core.management import call_command
 from django.utils import timezone
 
-from apps.baby.models import KickSession, WeeklyLog
+from apps.baby.models import KickSession
 from apps.baby.services import upsert_sessions
 
 LIMA_EVENING = datetime(2026, 10, 1, 4, 30, tzinfo=UTC)  # 23:30 on Sep 30 in Lima
-
-
-@pytest.mark.django_db
-def test_weekly_log_creation(user):
-    log = WeeklyLog.objects.create(
-        week_number=20,
-        weight_kg=65.5,
-        mood="good",
-        logged_by=user,
-    )
-    assert str(log).startswith("Week 20")
 
 
 @pytest.mark.django_db
@@ -42,9 +31,9 @@ def test_kick_session_date_is_lima_day():
 
 
 @pytest.mark.django_db
-def test_weekly_log_list_view(client):
-    response = client.get("/baby/logs/")
-    assert response.status_code == 200
+def test_weekly_log_pages_are_gone(client):
+    assert client.get("/baby/logs/").status_code == 404
+    assert client.get("/baby/logs/new/").status_code == 404
 
 
 @pytest.mark.django_db

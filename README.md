@@ -1,6 +1,6 @@
 # Baby Tracker
 
-A private pregnancy tracking app for you and your partner. Track weekly logs, medical appointments (synced to Google Calendar), upload ultrasound images and lab results to cloud storage, count kicks, and write your birth plan — all in one warm, mobile-friendly interface.
+A private pregnancy tracking app for you and your partner. Track medical appointments (synced to Google Calendar), upload ultrasound images and lab results to cloud storage, count kicks, and write your birth plan, all in one warm, mobile-friendly interface.
 
 Built with Django, HTMX, Tailwind CSS, PostgreSQL, and Cloudflare R2.
 
@@ -9,7 +9,6 @@ Built with Django, HTMX, Tailwind CSS, PostgreSQL, and Cloudflare R2.
 - **Dashboard** — Current pregnancy week, days until due date, upcoming appointments, recent files
 - **Appointments** — CRUD with Google Calendar sync (auto-creates events with reminders)
 - **Files** — Upload ultrasounds, lab results, prescriptions, belly photos and videos to Cloudflare R2
-- **Weekly Logs** — Track weight, blood pressure, symptoms, mood per pregnancy week
 - **Kick Counter** — Log daily kick count sessions with duration tracking
 - **Birth Plan** — Write and edit your birth preferences
 - **Notifications & Diagnostics** — Calendar sync failures (e.g. expired Google grant, missing calendar permission) surface as retryable notifications at `/notifications/`, with live per-user auth diagnostics and a one-click resync for future appointments

@@ -1,9 +1,8 @@
 from django.contrib import admin
 
-from .models import BirthPlan, KickSession, WeeklyLog
+from .models import BirthPlan, KickSession
 
 
-@admin.register(WeeklyLog)
 class WeeklyLogAdmin(admin.ModelAdmin):
     list_display = ("week_number", "date", "weight_kg", "mood", "logged_by")
     list_filter = ("mood",)

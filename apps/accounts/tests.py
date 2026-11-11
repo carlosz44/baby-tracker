@@ -112,7 +112,7 @@ def test_dashboard_view(client):
     [
         ("/", "home"),
         ("/baby/kick-counter/history/", "kicks"),
-        ("/baby/logs/", "logs"),
+        ("/baby/birth-plan/", "birth_plan"),
         ("/notifications/", "notifications"),
         ("/accounts/profile/", "profile"),
     ],
@@ -128,8 +128,17 @@ def test_bottom_nav_has_only_destinations(client):
     nav = html[html.index('aria-label="Secciones"'):]
     nav = nav[: nav.index("</nav>")]
     assert nav.count("<a") == 5
+    assert 'href="/baby/birth-plan/"' in nav
+    assert "/baby/logs/" not in nav
     assert "/notifications/" not in nav
     assert 'aria-current="page"' in nav
+
+
+@pytest.mark.django_db
+def test_dashboard_has_no_weekly_log_card(client):
+    html = client.get("/").content.decode()
+    assert "Último Registro" not in html
+    assert "/baby/logs/" not in html
 
 
 @pytest.mark.django_db

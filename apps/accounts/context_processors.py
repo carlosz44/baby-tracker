@@ -8,7 +8,6 @@ def debug_flag(request):
 NAV_SECTIONS = (
     ("/appointments", "appointments"),
     ("/files", "files"),
-    ("/baby/logs", "logs"),
     ("/baby/kick-counter", "kicks"),
     ("/baby/birth-plan", "birth_plan"),
     ("/notifications", "notifications"),

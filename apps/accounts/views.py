@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.appointments.models import Appointment
 from apps.baby.analytics import OVERVIEW_DAYS, recent_overview
-from apps.baby.models import KickSession, WeeklyLog
+from apps.baby.models import KickSession
 from apps.files.models import PregnancyFile
 
 from .forms import ProfileForm
@@ -24,7 +24,6 @@ def dashboard(request):
         date__gte=timezone.now()
     ).order_by("date")[:3]
 
-    last_log = WeeklyLog.objects.order_by("-date").first()
     recent_files = PregnancyFile.objects.order_by("-uploaded_at")[:4]
 
     now = timezone.now()
@@ -33,7 +32,6 @@ def dashboard(request):
     context = {
         "profile": profile,
         "upcoming_appointments": upcoming_appointments,
-        "last_log": last_log,
         "recent_files": recent_files,
         "kicks": recent_overview(recent_kicks, now=now),
     }

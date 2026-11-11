@@ -11,36 +11,9 @@ from django.views.decorators.http import require_POST
 from apps.accounts.models import Profile
 
 from .analytics import RANGES, build_report
-from .forms import BirthPlanForm, KickCounterForm, KickSessionForm, WeeklyLogForm
-from .models import BirthPlan, KickSession, WeeklyLog
+from .forms import BirthPlanForm, KickCounterForm, KickSessionForm
+from .models import BirthPlan, KickSession
 from .services import upsert_sessions
-
-
-@login_required
-def weekly_log_list(request):
-    logs = WeeklyLog.objects.all()
-    return render(request, "baby/log_list.html", {"logs": logs})
-
-
-@login_required
-def weekly_log_create(request):
-    profile = Profile.objects.first()
-    initial = {}
-    if profile and profile.pregnancy_week is not None:
-        initial["week_number"] = profile.pregnancy_week
-
-    if request.method == "POST":
-        form = WeeklyLogForm(request.POST)
-        if form.is_valid():
-            log = form.save(commit=False)
-            log.logged_by = request.user
-            log.save()
-            messages.success(request, "Registro semanal guardado.")
-            return redirect("weekly_log_list")
-    else:
-        form = WeeklyLogForm(initial=initial)
-
-    return render(request, "baby/log_form.html", {"form": form})
 
 
 @login_required

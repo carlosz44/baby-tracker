@@ -34,7 +34,7 @@
   {% endif %}
 
   {# Pregnancy overview cards #}
-  <div class="grid grid-cols-1 {% if profile.scheduled_birth_at %}sm:grid-cols-2{% else %}sm:grid-cols-3{% endif %} gap-4">
+  <div class="grid grid-cols-1 {% if not profile.scheduled_birth_at %}sm:grid-cols-2{% endif %} gap-4">
     <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
       <p class="text-sm text-slate-500 dark:text-zinc-400">Semana Actual</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
@@ -66,17 +66,6 @@
       </p>
     </div>
     {% endif %}
-
-    <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
-      <p class="text-sm text-slate-500 dark:text-zinc-400">Último Registro</p>
-      {% if last_log %}
-        <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">Semana {{ last_log.week_number }}</p>
-        <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">{{ last_log.weight_kg }} kg · {{ last_log.get_mood_display }}</p>
-      {% else %}
-        <p class="text-lg text-slate-400 dark:text-zinc-500 mt-2">Sin registros todavía</p>
-        <a href="/baby/logs/new/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Añade tu primer registro</a>
-      {% endif %}
-    </div>
   </div>
 
   {# Pataditas #}
