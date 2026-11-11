@@ -92,6 +92,26 @@ def test_profile_pregnancy_week():
     assert profile.pregnancy_week == 12
 
 
+def test_gestational_age_counts_weeks_plus_days():
+    profile = Profile(due_date=timezone.localdate() - timedelta(weeks=36, days=3))
+    assert profile.gestational_age == "36+3"
+
+
+def test_gestational_age_is_none_without_fur():
+    assert Profile().gestational_age is None
+
+
+@pytest.mark.django_db
+def test_dashboard_shows_gestational_age_in_countdown(client):
+    Profile.objects.create(
+        due_date=timezone.localdate() - timedelta(weeks=36, days=3),
+        scheduled_birth_at=BIRTH_UTC,
+    )
+    html = client.get("/").content.decode()
+    assert "Semana 36+3" in html
+    assert "Semana Actual" not in html
+
+
 @pytest.mark.django_db
 def test_profile_days_remaining():
     profile = Profile.objects.create(

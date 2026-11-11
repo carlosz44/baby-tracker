@@ -13,13 +13,17 @@
 {% block content %}
 <div class="space-y-6">
 
-  {# Countdown to the scheduled birth #}
   {% if profile.scheduled_birth_at %}
   {% with countdown=profile.birth_countdown %}
   <section class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm"
            data-birth-countdown="{{ profile.scheduled_birth_at|date:'c' }}">
-    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-      <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Cuenta regresiva para el parto</h2>
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Cuenta regresiva para el parto</h2>
+        {% if profile.gestational_age %}
+        <span class="text-xs px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 tabular-nums">Semana {{ profile.gestational_age }}</span>
+        {% endif %}
+      </div>
       <a href="{% url 'profile' %}" class="text-sm text-slate-500 hover:underline dark:text-zinc-400">{{ profile.scheduled_birth_at|date:"l j \d\e F \d\e Y · H:i" }}</a>
     </div>
     <div class="mt-4 grid grid-cols-4 gap-2" role="timer" data-countdown-clock {% if countdown.total_seconds == 0 %}hidden{% endif %}>
@@ -31,10 +35,8 @@
     <p class="mt-4 text-3xl font-bold text-rose-500 dark:text-rose-400" data-countdown-done {% if countdown.total_seconds != 0 %}hidden{% endif %}>¡Llegó el día!</p>
   </section>
   {% endwith %}
-  {% endif %}
-
-  {# Pregnancy overview cards #}
-  <div class="grid grid-cols-1 {% if not profile.scheduled_birth_at %}sm:grid-cols-2{% endif %} gap-4">
+  {% else %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
       <p class="text-sm text-slate-500 dark:text-zinc-400">Semana Actual</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
@@ -47,7 +49,6 @@
       <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">semanas de embarazo</p>
     </div>
 
-    {% if not profile.scheduled_birth_at %}
     <div class="bg-white dark:bg-zinc-800 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm">
       <p class="text-sm text-slate-500 dark:text-zinc-400">Días para la Fecha Probable</p>
       <p class="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-1">
@@ -65,8 +66,8 @@
         {% endif %}
       </p>
     </div>
-    {% endif %}
   </div>
+  {% endif %}
 
   {# Pataditas #}
   {% if kicks.alert %}

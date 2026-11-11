@@ -44,6 +44,14 @@ class Profile(models.Model):
         return delta.days // 7
 
     @property
+    def gestational_age(self):
+        """Weeks plus days since FUR in clinical notation, e.g. "36+3"."""
+        if not self.due_date:
+            return None
+        weeks, days = divmod((timezone.localdate() - self.due_date).days, 7)
+        return f"{weeks}+{days}"
+
+    @property
     def days_remaining(self):
         if not self.due_date:
             return None
