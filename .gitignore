@@ -43,6 +43,3 @@ minio_data/
 htmlcov/
 .coverage
 .coverage.*
-
-# Local notes
-vps-audit.md
