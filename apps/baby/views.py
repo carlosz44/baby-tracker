@@ -45,15 +45,6 @@ def weekly_log_create(request):
 
 @login_required
 def kick_counter(request):
-    today_sessions = KickSession.objects.filter(date=timezone.localdate())
-    return render(request, "baby/kick_counter.html", {"today_sessions": today_sessions})
-
-
-@login_required
-def kick_history(request):
-    since = timezone.localdate() - timedelta(days=30)
-    recent_sessions = KickSession.objects.filter(date__gte=since)
-
     if request.method == "POST":
         form = KickSessionForm(request.POST)
         if form.is_valid():
@@ -61,12 +52,20 @@ def kick_history(request):
             session.logged_by = request.user
             session.save()
             messages.success(request, "Pataditas registradas.")
-            return redirect("kick_history")
+            return redirect("kick_counter")
     else:
         now = timezone.localtime().replace(second=0, microsecond=0)
         form = KickSessionForm(initial={"started_at": now, "count": 10})
 
-    return render(request, "baby/kick_history.html", {"form": form, "recent_sessions": recent_sessions})
+    today_sessions = KickSession.objects.filter(date=timezone.localdate())
+    return render(request, "baby/kick_counter.html", {"form": form, "today_sessions": today_sessions})
+
+
+@login_required
+def kick_history(request):
+    since = timezone.localdate() - timedelta(days=30)
+    recent_sessions = KickSession.objects.filter(date__gte=since)
+    return render(request, "baby/kick_history.html", {"recent_sessions": recent_sessions})
 
 
 @login_required

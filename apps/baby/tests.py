@@ -66,12 +66,19 @@ def test_kick_history_view(client):
 
 
 @pytest.mark.django_db
+def test_manual_entry_lives_on_counter_page(client):
+    assert "Registrar manualmente" in client.get("/baby/kick-counter/").content.decode()
+    assert "Registrar manualmente" not in client.get("/baby/kick-counter/history/").content.decode()
+
+
+@pytest.mark.django_db
 def test_kick_counter_post_sets_goal_fields(client, user):
     response = client.post(
-        "/baby/kick-counter/history/",
+        "/baby/kick-counter/",
         {"started_at": "2026-10-16T15:30", "count": 10, "duration_minutes": 7, "notes": ""},
     )
     assert response.status_code == 302
+    assert response.url == "/baby/kick-counter/"
     session = KickSession.objects.get()
     assert timezone.localtime(session.started_at).hour == 15
     assert session.date == date(2026, 10, 16)
@@ -84,7 +91,7 @@ def test_kick_counter_post_sets_goal_fields(client, user):
 
 @pytest.mark.django_db
 def test_kick_counter_post_past_target_has_no_time_to_goal(client):
-    client.post("/baby/kick-counter/history/", {"started_at": "2026-10-16T15:30", "count": 14, "duration_minutes": 12})
+    client.post("/baby/kick-counter/", {"started_at": "2026-10-16T15:30", "count": 14, "duration_minutes": 12})
     session = KickSession.objects.get()
     assert session.goal_reached
     assert session.time_to_goal_seconds is None
@@ -93,8 +100,8 @@ def test_kick_counter_post_past_target_has_no_time_to_goal(client):
 @pytest.mark.django_db
 def test_kick_counter_post_rejects_duplicate_start(client):
     data = {"started_at": "2026-10-16T15:30", "count": 10, "duration_minutes": 7}
-    client.post("/baby/kick-counter/history/", data)
-    response = client.post("/baby/kick-counter/history/", data)
+    client.post("/baby/kick-counter/", data)
+    response = client.post("/baby/kick-counter/", data)
     assert response.status_code == 200
     assert "Ya existe una sesión" in response.content.decode()
     assert KickSession.objects.count() == 1

@@ -96,5 +96,31 @@
       <p class="p-5 text-sm text-slate-400 dark:text-zinc-500">Aún no hay sesiones hoy.</p>
     {% endif %}
   </div>
+
+  {# Registro manual #}
+  <details class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm" {% if form.errors %}open{% endif %}>
+    <summary class="cursor-pointer p-5 font-semibold text-slate-800 dark:text-zinc-100">Registrar manualmente</summary>
+    <form method="post" class="px-6 pb-6">
+      {% csrf_token %}
+      <div class="space-y-4">
+        {% for field in form %}
+        <div>
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <p class="text-sm text-red-500 mt-1">{{ field.errors.0 }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit"
+                class="w-full bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded-lg transition">
+          Guardar
+        </button>
+      </div>
+    </form>
+  </details>
 </div>
 {% endblock %}
