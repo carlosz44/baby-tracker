@@ -3,7 +3,11 @@ import json
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
 
 from apps.baby.models import KickSession
@@ -30,10 +34,19 @@ def test_kick_session_date_is_lima_day():
     assert session.date == date(2026, 9, 30)
 
 
-@pytest.mark.django_db
-def test_weekly_log_pages_are_gone(client):
-    assert client.get("/baby/logs/").status_code == 404
-    assert client.get("/baby/logs/new/").status_code == 404
+@pytest.mark.django_db(transaction=True)
+def test_weekly_log_content_type_and_permissions_are_removed():
+    executor = MigrationExecutor(connection)
+    executor.migrate([("baby", "0004_delete_weeklylog")])
+    stale = ContentType.objects.create(app_label="baby", model="weeklylog")
+    Permission.objects.create(content_type=stale, codename="view_weeklylog", name="Can view weekly log")
+
+    executor = MigrationExecutor(connection)
+    executor.migrate(executor.loader.graph.leaf_nodes("baby"))
+
+    assert not ContentType.objects.filter(app_label="baby", model="weeklylog").exists()
+    assert not Permission.objects.filter(codename="view_weeklylog").exists()
+    assert ContentType.objects.filter(app_label="baby", model="kicksession").exists()
 
 
 @pytest.mark.django_db
