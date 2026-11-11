@@ -146,15 +146,24 @@
   <div class="bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm">
     <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-700">
       <h2 class="font-semibold text-slate-800 dark:text-zinc-100">Archivos Recientes</h2>
-      <a href="/files/upload/" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Subir</a>
+      <div class="flex items-center gap-4">
+        <a href="{% url 'file_list' %}" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">Ver todos</a>
+        <a href="{% url 'file_upload' %}" class="text-sm text-rose-500 dark:text-rose-400 hover:underline">+ Subir</a>
+      </div>
     </div>
     {% if recent_files %}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5">
         {% for file in recent_files %}
-        <div class="text-center">
+        <button type="button"
+                class="group w-full text-center"
+                hx-get="{% url 'file_preview' file.pk %}"
+                hx-target="#file-preview-content"
+                hx-swap="innerHTML"
+                data-file-preview-open
+                data-file-title="{{ file.title }}">
           {% if file.is_image %}
             <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 overflow-hidden">
-              <img src="{{ file.file.url }}" alt="{{ file.title }}" class="w-full h-full object-cover">
+              <img src="{{ file.file.url }}" alt="{{ file.title }}" class="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy">
             </div>
           {% elif file.is_pdf %}
             <div class="aspect-square rounded-lg bg-slate-100 dark:bg-zinc-700 flex flex-col items-center justify-center gap-1">
@@ -167,7 +176,7 @@
             </div>
           {% endif %}
           <p class="text-xs text-slate-600 dark:text-zinc-300 mt-1 truncate">{{ file.title }}</p>
-        </div>
+        </button>
         {% endfor %}
       </div>
     {% else %}
@@ -176,4 +185,8 @@
   </div>
 
 </div>
+
+{% if recent_files %}
+  {% include "files/_preview_modal.html" %}
+{% endif %}
 {% endblock %}

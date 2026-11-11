@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 
 import pytest
@@ -52,6 +53,23 @@ def test_file_list_includes_preview_endpoint(client, user, local_file_storage):
 
     assert response.status_code == 200
     assert f"/files/{pregnancy_file.pk}/preview/" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_dashboard_recent_files_open_preview(client, user, local_file_storage):
+    pregnancy_file = create_pregnancy_file(user)
+
+    content = client.get("/").content.decode()
+
+    assert f'hx-get="/files/{pregnancy_file.pk}/preview/"' in content
+    assert 'id="file-preview-modal"' in content
+
+
+@pytest.mark.django_db
+def test_dashboard_recent_files_link_to_file_list(client):
+    content = client.get("/").content.decode()
+
+    assert re.search(r'href="/files/"[^>]*>\s*Ver todos', content)
 
 
 @pytest.mark.django_db

@@ -1,0 +1,99 @@
+<div id="file-preview-modal"
+     class="fixed inset-0 z-60 hidden"
+     aria-hidden="true">
+  <div class="absolute inset-0 bg-slate-950/70" data-file-preview-close></div>
+
+  <div class="relative flex h-full items-end justify-center px-2 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:items-center sm:p-4">
+    <div class="relative flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-zinc-800 md:h-full"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="file-preview-modal-title">
+      <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-zinc-700">
+        <h2 id="file-preview-modal-title" class="text-sm font-semibold text-slate-800 dark:text-zinc-100">
+          Vista previa del archivo
+        </h2>
+        <button type="button"
+                class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                data-file-preview-close
+                aria-label="Cerrar vista previa">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div id="file-preview-content" class="min-h-72 overflow-auto bg-slate-50 dark:bg-zinc-900/40 md:min-h-0 md:flex-1">
+        <div class="flex h-full min-h-72 items-center justify-center px-6 text-sm text-slate-500 dark:text-zinc-400">
+          Selecciona un archivo para ver la vista previa.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var modal = document.getElementById("file-preview-modal");
+    var content = document.getElementById("file-preview-content");
+    if (!modal || !content) {
+      return;
+    }
+
+    var closeButtons = modal.querySelectorAll("[data-file-preview-close]");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function setLoadingState(title) {
+      content.innerHTML =
+        '<div class="flex h-full min-h-72 flex-col items-center justify-center gap-2 px-6 text-center">' +
+        '<div class="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-rose-500 dark:border-zinc-600 dark:border-t-rose-400"></div>' +
+        '<p class="text-sm text-slate-500 dark:text-zinc-400">Cargando ' + escapeHtml(title) + '...</p>' +
+        '</div>';
+    }
+
+    function openModal(title) {
+      setLoadingState(title || "archivo");
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("overflow-hidden");
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    document.addEventListener("click", function (event) {
+      var trigger = event.target.closest("[data-file-preview-open]");
+      if (trigger) {
+        openModal(trigger.dataset.fileTitle || "archivo");
+      }
+    });
+
+    closeButtons.forEach(function (button) {
+      button.addEventListener("click", closeModal);
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
+
+    document.body.addEventListener("htmx:responseError", function (event) {
+      if (event.detail.target && event.detail.target.id === "file-preview-content") {
+        content.innerHTML =
+          '<div class="flex h-full min-h-72 flex-col items-center justify-center gap-2 px-6 text-center">' +
+          '<p class="text-sm font-medium text-slate-700 dark:text-zinc-200">No se pudo cargar la vista previa.</p>' +
+          '<p class="text-sm text-slate-500 dark:text-zinc-400">Intenta nuevamente en unos segundos.</p>' +
+          '</div>';
+      }
+    });
+  })();
+</script>
